@@ -1,5 +1,7 @@
 import logging
 import json
+import asyncio
+import threading
 from flask import Blueprint, request, jsonify, current_app, render_template
 
 from config import WEBHOOK_SECRET
@@ -22,7 +24,7 @@ def health_check():
     return jsonify({"status": "ok", "service": "telegram-news-bot"})
 
 @webhook_bp.route('/news-webhook', methods=['POST'])
-async def news_webhook():
+def news_webhook():
     """
     Endpoint to receive news via webhook.
     
@@ -66,14 +68,26 @@ async def news_webhook():
         # Log webhook
         database.log_webhook(news.news_id, json.dumps(data['news']))
         
-        # Broadcast news asynchronously
-        success_count, error_count = await broadcast_news(news)
+        # Start async handling in a separate thread
+        def process_broadcast():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                success_count, error_count = loop.run_until_complete(broadcast_news(news))
+                logger.info(f"Broadcast completed. Success: {success_count}, Errors: {error_count}")
+            except Exception as e:
+                logger.error(f"Error broadcasting news: {e}")
+            finally:
+                loop.close()
+        
+        thread = threading.Thread(target=process_broadcast)
+        thread.daemon = True
+        thread.start()
         
         return jsonify({
             "status": "success",
-            "message": "News broadcasted successfully",
-            "success_count": success_count,
-            "error_count": error_count
+            "message": "News broadcast request accepted",
+            "news_id": news.news_id
         })
         
     except Exception as e:
@@ -81,7 +95,7 @@ async def news_webhook():
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 @webhook_bp.route('/telegram-webhook', methods=['POST'])
-async def telegram_webhook():
+def telegram_webhook():
     """
     Endpoint to receive Telegram webhook events.
     This is set up to receive updates from Telegram when the bot is interacted with.
@@ -95,7 +109,7 @@ async def telegram_webhook():
         logger.debug(f"Received Telegram update: {update_json}")
         
         # We acknowledge receipt of the update
-        # The actual processing is handled by the bot application
+        # The actual processing is handled by the bot's webhook updater
         return jsonify({"status": "ok"})
         
     except Exception as e:

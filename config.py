@@ -8,7 +8,7 @@ logging.basicConfig(
 )
 
 # Bot configuration
-TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '7007511836:AAFCCmRD4C9afKG_tZxn9UReRlXv0iglX0E')
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '7542350946:AAHJD_P3Q2x42ScyWxDlq7KKcz4NdfuOCYk')
 if not TELEGRAM_BOT_TOKEN:
     logging.error("Telegram bot token not found in environment variables!")
 
@@ -18,7 +18,7 @@ if not WEBHOOK_URL:
     logging.warning("Webhook URL not found in environment variables. The bot won't be able to receive webhooks.")
 
 # Secret key for webhook authentication
-WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', 'default_secret_key')
+WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', 'crypto_news_webhook_secret_2025')
 if WEBHOOK_SECRET == 'default_secret_key':
     logging.warning("Using default webhook secret key. This is not secure for production.")
 
