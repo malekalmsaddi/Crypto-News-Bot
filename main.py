@@ -1,5 +1,5 @@
+
 import os
-import asyncio
 import logging
 from flask import Flask
 from config import HOST, PORT, DEBUG
@@ -27,7 +27,7 @@ def run_bot():
     """Initialize the bot in the background."""
     try:
         updater = setup_bot()
-        updater.start_polling()
+        updater.start_polling(drop_pending_updates=True)
         logging.info("Bot initialized successfully!")
         updater.idle()
     except Exception as e:
@@ -35,8 +35,4 @@ def run_bot():
         raise e
 
 if __name__ == "__main__":
-    # Start the bot in the main thread since it needs to handle signals
     run_bot()
-    
-    # Start the Flask web server
-    app.run(host=HOST, port=PORT, debug=DEBUG)
