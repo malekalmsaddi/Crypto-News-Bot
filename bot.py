@@ -280,14 +280,9 @@ def setup_bot():
     from telegram.ext import ChatMemberHandler
     dispatcher.add_handler(ChatMemberHandler(chat_member_updated, ChatMemberHandler.MY_CHAT_MEMBER))
     
-    if WEBHOOK_URL:
-        # Set webhook
-        updater.bot.set_webhook(url=f"{WEBHOOK_URL}/telegram-webhook")
-        logger.info(f"Webhook set to {WEBHOOK_URL}/telegram-webhook")
-    else:
-        # Remove any existing webhook
-        updater.bot.delete_webhook()
-        logger.warning("Starting in polling mode as no webhook URL was provided")
+    # Remove any existing webhook and use polling
+    updater.bot.delete_webhook(drop_pending_updates=True)
+    logger.info("Webhook removed, starting in polling mode")
     return updater
 
 def get_bot_username():

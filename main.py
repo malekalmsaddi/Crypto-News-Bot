@@ -27,11 +27,12 @@ def run_bot():
     """Initialize the bot in the background."""
     try:
         updater = setup_bot()
-        updater.start_polling()
+        updater.start_polling(allowed_updates=Update.ALL_TYPES)
         logging.info("Bot initialized successfully!")
         updater.idle()
     except Exception as e:
         logging.error(f"Failed to initialize bot: {e}")
+        raise e
 
 if __name__ == "__main__":
     # Start the bot in a separate thread
