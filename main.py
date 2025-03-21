@@ -27,7 +27,7 @@ def run_bot():
     """Initialize the bot in the background."""
     try:
         updater = setup_bot()
-        updater.start_polling(allowed_updates=Update.ALL_TYPES)
+        updater.start_polling()
         logging.info("Bot initialized successfully!")
         updater.idle()
     except Exception as e:
@@ -35,11 +35,8 @@ def run_bot():
         raise e
 
 if __name__ == "__main__":
-    # Start the bot in a separate thread
-    import threading
-    bot_thread = threading.Thread(target=run_bot)
-    bot_thread.daemon = True
-    bot_thread.start()
+    # Start the bot in the main thread since it needs to handle signals
+    run_bot()
     
     # Start the Flask web server
     app.run(host=HOST, port=PORT, debug=DEBUG)
