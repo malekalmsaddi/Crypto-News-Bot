@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html data-bs-theme="dark">
+<html data-bs-theme="dark" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram News Broadcasting Bot</title>
+    <title>بوت أخبار الكريبتو من إنفترون داو</title>
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
     <style>
         body {
@@ -17,17 +17,37 @@
             overflow-x: auto;
         }
         .bot-link {
-            background-color: var(--bs-primary);
+            background-color: var(--bs-success);
             color: white;
             font-weight: bold;
-            padding: 8px 16px;
+            padding: 10px 20px;
             border-radius: 6px;
             text-decoration: none;
             display: inline-block;
             margin-top: 10px;
+            transition: all 0.3s;
         }
         .bot-link:hover {
-            background-color: var(--bs-primary-dark);
+            background-color: var(--bs-success-emphasis);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            color: white;
+        }
+        .crypto-icon {
+            font-size: 2rem;
+            margin-right: 10px;
+        }
+        .card-header {
+            background: linear-gradient(45deg, var(--bs-primary-bg-subtle), var(--bs-success-bg-subtle));
+        }
+        .feature-item {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+        }
+        .feature-icon {
+            margin-right: 10px;
+            color: var(--bs-success);
         }
     </style>
 </head>
@@ -37,65 +57,86 @@
             <div class="col-lg-8 mx-auto">
                 <div class="card">
                     <div class="card-header">
-                        <h1 class="h4 mb-0">Telegram News Broadcasting Bot</h1>
+                        <h1 class="h4 mb-0">
+                            <span class="crypto-icon">📊</span>
+                            بوت أخبار الكريبتو من إنفترون داو
+                        </h1>
                     </div>
                     <div class="card-body">
                         <div class="alert alert-success" role="alert">
                             <i class="bi bi-check-circle-fill me-2"></i>
-                            <strong>Bot is active and ready to receive news!</strong>
+                            <strong>البوت نشط وجاهز لاستقبال أخبار الكريبتو!</strong>
                         </div>
 
-                        <h2 class="h5 mt-4">About This Bot</h2>
+                        <h2 class="h5 mt-4">نبذة عن البوت</h2>
                         <p>
-                            This bot receives news via webhooks and automatically broadcasts them
-                            to all Telegram groups it has been added to.
+                            يستقبل هذا البوت أخبار العملات الرقمية عبر الويب هوك ويعيد نشرها تلقائيًا
+                            في جميع مجموعات تيليجرام التي تمت إضافته إليها. يساعد هذا البوت المستخدمين في البقاء على اطلاع بأحدث أخبار الكريبتو.
                         </p>
 
                         {% if bot_username %}
                         <p>
                             <a href="https://t.me/{{ bot_username }}" class="bot-link">
-                                Add @{{ bot_username }} to your group
+                                أضف @{{ bot_username }} إلى مجموعتك
                             </a>
                         </p>
                         {% endif %}
 
-                        <h2 class="h5 mt-4">How to Use</h2>
+                        <h2 class="h5 mt-4">مميزات البوت</h2>
+                        <div class="feature-item">
+                            <span class="feature-icon">✅</span>
+                            <div>نشر تلقائي لأخبار الكريبتو في مجموعات تيليجرام</div>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">✅</span>
+                            <div>تنسيق متميز للأخبار مع دعم للروابط والصور</div>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">✅</span>
+                            <div>دعم كامل للغة العربية</div>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">✅</span>
+                            <div>واجهة برمجة سهلة لإرسال الأخبار</div>
+                        </div>
+
+                        <h2 class="h5 mt-4">كيفية الاستخدام</h2>
                         <ol>
-                            <li>Add the bot to your Telegram group</li>
-                            <li>Make sure the bot has permission to send messages</li>
-                            <li>Send news to the webhook endpoint</li>
+                            <li>أضف البوت إلى مجموعتك على تيليجرام</li>
+                            <li>تأكد من أن للبوت صلاحية إرسال الرسائل</li>
+                            <li>أرسل الأخبار إلى نقطة الويب هوك</li>
                         </ol>
 
-                        <h2 class="h5 mt-4">Webhook API Reference</h2>
+                        <h2 class="h5 mt-4">واجهة برمجة الويب هوك</h2>
                         <p>
-                            To send news to the bot, make a POST request to <code>/news-webhook</code> with the following JSON structure:
+                            لإرسال الأخبار إلى البوت، قم بإرسال طلب POST إلى <code>/news-webhook</code> بالشكل التالي:
                         </p>
 
                         <div class="json-example">
 <pre><code>{
-    "secret": "your_webhook_secret",
+    "secret": "crypto_news_webhook_secret_2025",
     "news": {
-        "id": "unique_id",
-        "title": "News Title",
-        "content": "News content...",
-        "source": "Source Name",
-        "url": "https://example.com/news",
-        "image_url": "https://example.com/image.jpg",
-        "tags": ["tag1", "tag2"]
+        "id": "crypto-123",
+        "title": "بيتكوين يتجاوز 80 ألف دولار للمرة الأولى",
+        "content": "حقق بيتكوين رقماً قياسياً جديداً بتجاوزه 80000 دولار...",
+        "source": "إنفترون داو",
+        "url": "https://invtrondao.com/news/123",
+        "image_url": "https://example.com/bitcoin-80k.jpg",
+        "tags": ["بيتكوين", "العملات_الرقمية", "سوق_الكريبتو"]
     }
 }</code></pre>
                         </div>
 
-                        <h2 class="h5 mt-4">Bot Commands</h2>
+                        <h2 class="h5 mt-4">أوامر البوت</h2>
                         <ul>
-                            <li><code>/start</code> - Initialize the bot</li>
-                            <li><code>/help</code> - Show help information</li>
-                            <li><code>/about</code> - About the bot</li>
-                            <li><code>/status</code> - Check if the bot is working</li>
+                            <li><code>/start</code> - بدء استخدام البوت</li>
+                            <li><code>/help</code> - عرض معلومات المساعدة</li>
+                            <li><code>/about</code> - عرض معلومات عن البوت</li>
+                            <li><code>/status</code> - التحقق من عمل البوت</li>
                         </ul>
                     </div>
                     <div class="card-footer text-muted">
-                        <small>To configure this bot, set the environment variables: <code>TELEGRAM_BOT_TOKEN</code>, <code>WEBHOOK_URL</code>, and <code>WEBHOOK_SECRET</code></small>
+                        <small>لتكوين هذا البوت، قم بتعيين متغيرات البيئة: <code>TELEGRAM_BOT_TOKEN</code>، <code>WEBHOOK_URL</code>، و <code>WEBHOOK_SECRET</code></small>
                     </div>
                 </div>
             </div>

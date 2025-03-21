@@ -44,14 +44,18 @@ class News:
             message += f"{content}\n\n"
         
         if self.source:
-            message += f"Source: {self.source}\n"
+            message += f"📊 *المصدر*: {self.source}\n"
         
         if self.url:
-            message += f"[Read more]({self.url})\n"
+            message += f"🔗 [اقرأ المزيد]({self.url})\n"
         
         if self.tags and len(self.tags) > 0:
-            tags = ' '.join([f"#{tag.replace(' ', '_')}" for tag in self.tags])
-            message += f"\n{tags}"
+            # Format tags for crypto news
+            crypto_tags = ' '.join([f"#{tag.replace(' ', '_')}" for tag in self.tags])
+            message += f"\n{crypto_tags}\n"
+        
+        # Add bot branding
+        message += "\n📱 مقدم من: بوت أخبار الكريبتو من إنفترون داو"
         
         return message
     
