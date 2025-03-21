@@ -27,6 +27,7 @@ def run_bot():
     """Initialize the bot in the background."""
     try:
         updater = setup_bot()
+        updater.start_polling()
         logging.info("Bot initialized successfully!")
         updater.idle()
     except Exception as e:

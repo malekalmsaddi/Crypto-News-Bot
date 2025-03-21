@@ -284,12 +284,11 @@ def setup_bot():
         # Set webhook
         updater.bot.set_webhook(url=f"{WEBHOOK_URL}/telegram-webhook")
         logger.info(f"Webhook set to {WEBHOOK_URL}/telegram-webhook")
-        return updater
     else:
-        # Start polling mode if webhook URL isn't provided
-        updater.start_polling()
+        # Remove any existing webhook
+        updater.bot.delete_webhook()
         logger.warning("Starting in polling mode as no webhook URL was provided")
-        return updater
+    return updater
 
 def get_bot_username():
     """Get the bot's username (synchronously)."""
