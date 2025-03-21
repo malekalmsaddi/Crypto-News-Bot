@@ -27,11 +27,8 @@ def run_bot():
     """Initialize the bot in the background."""
     try:
         updater = setup_bot()
-        if not WEBHOOK_URL:
-            # Start polling mode
-            updater.start_polling()
-            updater.idle()
         logging.info("Bot initialized successfully!")
+        updater.idle()
     except Exception as e:
         logging.error(f"Failed to initialize bot: {e}")
 
