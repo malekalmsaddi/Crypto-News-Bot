@@ -1,6 +1,6 @@
 import logging
 import os
-import sys
+import asyncio
 from models import News
 from telegram import Bot, ParseMode
 
@@ -11,69 +11,101 @@ logger = logging.getLogger(__name__)
 
 # Get the bot token from environment variables
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+TEST_CHAT_ID = "-1001234567890"  # Our test group chat ID
 
-def send_direct_test_message():
+async def send_direct_test_message():
     """
     Send a test message directly to a specific Telegram chat.
     This is useful for testing without needing to simulate the webhook process.
     """
     if not TELEGRAM_BOT_TOKEN:
         logger.error("TELEGRAM_BOT_TOKEN not found in environment variables.")
-        return
+        return False
     
-    bot = Bot(token=TELEGRAM_BOT_TOKEN)
-    
-    # Get bot info
-    bot_info = bot.get_me()
-    logger.info(f"Connected to bot: {bot_info.first_name} (@{bot_info.username})")
-    
-    # Create a test news item about Bitcoin in Arabic
-    test_news = News(
-        news_id="broadcast-test-001",
-        title="بيتكوين يتجاوز سعر 75 ألف دولار لأول مرة",
-        content="في تطور مثير، تجاوز سعر بيتكوين 75000 دولار أمريكي لأول مرة في التاريخ، مما يعكس ثقة المستثمرين المتزايدة في العملات الرقمية. ويأتي هذا الارتفاع وسط إقبال مؤسسي متزايد وتوقعات إيجابية للسوق.",
-        source="بوت أخبار الكريبتو - اختبار",
-        url="https://example.com/btc-75k",
-        image_url="",
-        tags=["بيتكوين", "سعر_قياسي", "عملات_رقمية", "استثمار"]
-    )
-    
-    # Format the message using our enhanced formatter
-    formatted_message = test_news.format_telegram_message()
-    logger.info(f"Formatted message:\n{formatted_message}")
-    
-    # Ask user for a chat ID to send to
-    print("\nDo you want to send this test message to your Telegram account or group?")
-    print("If yes, please provide the chat ID when running the script again with:")
-    print("python broadcast_test.py YOUR_CHAT_ID")
-    print("\nTo get your personal chat ID, talk to @userinfobot on Telegram.")
-    print("To get a group chat ID, add @RawDataBot to the group temporarily.")
-    
-    # Check if chat ID was provided as command line argument
-    if len(sys.argv) > 1:
+    try:
+        bot = Bot(token=TELEGRAM_BOT_TOKEN)
+        
+        # Get bot info - in PTB v13.15, get_me() is not async
+        bot_info = bot.get_me()
+        logger.info(f"Connected to bot: {bot_info.first_name} (@{bot_info.username})")
+        
+        # Create a test news item about Bitcoin in Arabic
+        test_news = News(
+            news_id="broadcast-test-001",
+            title="بيتكوين يتجاوز سعر 75 ألف دولار لأول مرة",
+            content="في تطور مثير، تجاوز سعر بيتكوين 75000 دولار أمريكي لأول مرة في التاريخ، مما يعكس ثقة المستثمرين المتزايدة في العملات الرقمية. ويأتي هذا الارتفاع وسط إقبال مؤسسي متزايد وتوقعات إيجابية للسوق.",
+            source="بوت أخبار الكريبتو - اختبار",
+            url="https://example.com/btc-75k",
+            image_url="",
+            tags=["بيتكوين", "سعر_قياسي", "عملات_رقمية", "استثمار"]
+        )
+        
+        # Format the message using our enhanced formatter
+        formatted_message = test_news.format_telegram_message()
+        logger.info(f"Formatted message:\n{formatted_message}")
+        
+        # First try to send with plain text (no formatting)
+        print(f"\nAttempting to send plain text message to chat ID: {TEST_CHAT_ID}")
+        simple_message = f"🔄 اختبار: بيتكوين يتجاوز 75 ألف دولار\n\nهذه رسالة اختبار بدون تنسيق من بوت أخبار الكريبتو."
+        
+        await bot.send_message(
+            chat_id=TEST_CHAT_ID,
+            text=simple_message
+        )
+        print("✅ Plain text message sent successfully!")
+        
+        # Now try to send the formatted message with limited markdown
+        print(f"\nAttempting to send formatted message to chat ID: {TEST_CHAT_ID}")
+        
         try:
-            chat_id = sys.argv[1]
+            # We'll use a more careful formatting approach to avoid Markdown parsing issues
+            safe_message = (
+                f"₿ *بيتكوين يتجاوز سعر 75 ألف دولار لأول مرة*\n\n"
+                f"في تطور مثير، تجاوز سعر بيتكوين 75000 دولار أمريكي لأول مرة في التاريخ، "
+                f"مما يعكس ثقة المستثمرين المتزايدة في العملات الرقمية.\n\n"
+                f"📊 *المصدر*: بوت أخبار الكريبتو - اختبار\n"
+                f"🔗 [اقرأ المزيد](https://example.com/btc-75k)\n\n"
+                f"#بيتكوين #سعر_قياسي #عملات_رقمية #استثمار\n\n"
+                f"🟢 السوق: صاعد\n\n"
+                f"📱 مقدم من: بوت أخبار الكريبتو من إنفترون داو"
+            )
             
-            # Try to send the message
-            print(f"\nAttempting to send test message to chat ID: {chat_id}")
-            message = bot.send_message(
-                chat_id=chat_id,
-                text=formatted_message,
+            await bot.send_message(
+                chat_id=TEST_CHAT_ID,
+                text=safe_message,
                 parse_mode=ParseMode.MARKDOWN,
                 disable_web_page_preview=False
             )
-            
-            print(f"\n✅ Success! Message sent to chat ID: {chat_id}")
-            print(f"Message ID: {message.message_id}")
+            print("✅ Formatted message sent successfully!")
             
         except Exception as e:
-            print(f"\n❌ Error sending message: {str(e)}")
-            print("\nPossible reasons for failure:")
-            print("1. The chat ID is incorrect")
-            print("2. The bot is not a member of the specified group")
-            print("3. The bot doesn't have permission to send messages in the group")
-            print("4. You haven't started a conversation with the bot (for direct messages)")
-    
+            print(f"❌ Error sending formatted message: {str(e)}")
+            
+            # If formatted message fails, try without parse_mode
+            print("\nRetrying with original formatted message but without parse_mode...")
+            try:
+                await bot.send_message(
+                    chat_id=TEST_CHAT_ID,
+                    text=formatted_message
+                )
+                print("✅ Unformatted original message sent successfully!")
+            except Exception as e2:
+                print(f"❌ Error sending unformatted message: {str(e2)}")
+                return False
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to execute test broadcast: {e}")
+        print(f"\n❌ Error in test broadcast: {str(e)}")
+        return False
+
 if __name__ == "__main__":
-    # Run the test
-    send_direct_test_message()
+    print("Starting broadcast test...")
+    # Run the async function
+    success = asyncio.run(send_direct_test_message())
+    
+    if success:
+        print("\n✅ Test completed successfully!")
+    else:
+        print("\n❌ Test failed.")

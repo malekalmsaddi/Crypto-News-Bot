@@ -50,7 +50,8 @@ class News:
             else:
                 title_emoji = "💰"
         
-        message = f"{title_emoji} *{self.title}*\n\n"
+        # Create a plain text message with no Markdown to avoid parsing errors
+        message = f"{title_emoji} {self.title}\n\n"
         
         if self.content:
             # Truncate content if too long for Telegram (limit is 4096 chars)
@@ -59,19 +60,19 @@ class News:
             message += f"{content}\n\n"
         
         if self.source:
-            message += f"📊 *المصدر*: {self.source}\n"
+            message += f"📊 المصدر: {self.source}\n"
         
         if self.url:
-            message += f"🔗 [اقرأ المزيد]({self.url})\n"
+            message += f"🔗 الرابط: {self.url}\n"
         
         if self.tags and len(self.tags) > 0:
-            # Format tags for crypto news
+            # Format tags as plain text hashtags
             crypto_tags = ' '.join([f"#{tag.replace(' ', '_')}" for tag in self.tags])
             message += f"\n{crypto_tags}\n"
         
         # Add market indicators for crypto news
         if any(keyword in combined_text for keyword in crypto_keywords):
-            # Add market sentiment indicator (in a real implementation, this could fetch live market data)
+            # Add market sentiment indicator
             import hashlib
             # Use a hash of the news_id to create a pseudo-random market trend
             hash_value = int(hashlib.md5(self.news_id.encode()).hexdigest(), 16)
