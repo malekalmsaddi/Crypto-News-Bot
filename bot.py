@@ -112,7 +112,7 @@ async def broadcast_news(news: News):
     
     if not chats:
         logger.warning("No chats to broadcast to.")
-        return
+        return 0, 0
     
     message_text = news.format_telegram_message()
     success_count = 0

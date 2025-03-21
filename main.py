@@ -25,10 +25,8 @@ def set_bot_info():
 
 def run_bot():
     """Initialize the bot in the background."""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
     try:
-        bot_app = loop.run_until_complete(setup_bot())
+        bot_app = setup_bot()
         logging.info("Bot initialized successfully!")
     except Exception as e:
         logging.error(f"Failed to initialize bot: {e}")
