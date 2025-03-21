@@ -87,15 +87,28 @@ def status_command(update: Update, context: CallbackContext) -> None:
 
 def price_command(update: Update, context: CallbackContext) -> None:
     """Handle the /price command to show cryptocurrency prices."""
-    # In a real implementation, this would fetch real price data from an API
-    # For now, we're using sample data for demonstration
-    prices = {
-        "BTC": {"price": 74850.25, "change": 2.5},
-        "ETH": {"price": 3975.12, "change": 1.8},
-        "SOL": {"price": 189.45, "change": 3.2},
-        "BNB": {"price": 628.74, "change": -0.7},
-        "ADA": {"price": 0.58, "change": 1.2}
-    }
+    from pycoingecko import CoinGeckoAPI
+    cg = CoinGeckoAPI()
+    
+    try:
+        # Fetch prices and 24h changes
+        prices_data = cg.get_price(
+            ids=['bitcoin', 'ethereum', 'solana', 'binancecoin', 'cardano'],
+            vs_currencies='usd',
+            include_24hr_change=True
+        )
+        
+        prices = {
+            "BTC": {"price": prices_data['bitcoin']['usd'], "change": prices_data['bitcoin']['usd_24h_change']},
+            "ETH": {"price": prices_data['ethereum']['usd'], "change": prices_data['ethereum']['usd_24h_change']},
+            "SOL": {"price": prices_data['solana']['usd'], "change": prices_data['solana']['usd_24h_change']},
+            "BNB": {"price": prices_data['binancecoin']['usd'], "change": prices_data['binancecoin']['usd_24h_change']},
+            "ADA": {"price": prices_data['cardano']['usd'], "change": prices_data['cardano']['usd_24h_change']}
+        }
+    except Exception as e:
+        logger.error(f"Failed to fetch prices: {e}")
+        update.message.reply_text("⚠️ عذراً، حدث خطأ أثناء جلب الأسعار. الرجاء المحاولة لاحقاً.")
+        return
     
     # Format the message in Arabic
     price_message = "💰 *أسعار العملات الرقمية الآن:*\n\n"
