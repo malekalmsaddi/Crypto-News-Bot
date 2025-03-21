@@ -699,6 +699,7 @@ dependencies = [
     { name = "gunicorn" },
     { name = "psycopg2-binary" },
     { name = "python-telegram-bot" },
+    { name = "requests" },
     { name = "telegram" },
     { name = "twilio" },
 ]
@@ -711,6 +712,7 @@ requires-dist = [
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "python-telegram-bot", specifier = "==13.15" },
+    { name = "requests", specifier = ">=2.32.3" },
     { name = "telegram", specifier = ">=0.0.1" },
     { name = "twilio", specifier = ">=9.5.1" },
 ]
