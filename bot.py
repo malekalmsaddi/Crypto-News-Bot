@@ -49,6 +49,10 @@ def help_command(update: Update, context: CallbackContext) -> None:
         "/help - عرض رسالة المساعدة هذه\n"
         "/about - معلومات عن البوت\n"
         "/status - التحقق من عمل البوت\n"
+        "/price - عرض أسعار العملات الرقمية\n\n"
+        "💡 *نصائح:*\n"
+        "• أضف البوت إلى مجموعتك لتلقي أخبار الكريبتو تلقائياً\n"
+        "• استخدم أمر /price في أي وقت لمعرفة أحدث أسعار العملات الرقمية\n"
     )
     
     update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
@@ -60,9 +64,19 @@ def about_command(update: Update, context: CallbackContext) -> None:
         "تم تصميم هذا البوت لنشر أخبار الكريبتو تلقائياً في مجموعات تيليجرام.\n\n"
         "يستقبل البوت الأخبار عبر الويب هوك ويعيد نشرها في جميع المجموعات المضاف إليها.\n\n"
         "*المميزات:*\n"
-        "• نشر الأخبار تلقائياً\n"
+        "• نشر أخبار الكريبتو تلقائياً\n"
+        "• عرض أسعار العملات الرقمية\n"
         "• تتبع المجموعات\n"
-        "• تنسيق منشورات الأخبار\n\n"
+        "• تنسيق منشورات الأخبار بشكل جميل\n"
+        "• دعم اللغة العربية بالكامل\n\n"
+        "*العملات المدعومة:*\n"
+        "• بيتكوين (BTC)\n"
+        "• إيثريوم (ETH)\n"
+        "• سولانا (SOL)\n"
+        "• بينانس كوين (BNB)\n"
+        "• كاردانو (ADA)\n"
+        "وغيرها الكثير...\n\n"
+        "📱 هذا البوت مقدم من: إنفترون داو"
     )
     
     update.message.reply_text(about_text, parse_mode=ParseMode.MARKDOWN)
@@ -184,6 +198,7 @@ def setup_bot():
     dispatcher.add_handler(CommandHandler("help", help_command))
     dispatcher.add_handler(CommandHandler("about", about_command))
     dispatcher.add_handler(CommandHandler("status", status_command))
+    dispatcher.add_handler(CommandHandler("price", price_command))
     
     # Track group migrations and bot membership changes
     dispatcher.add_handler(MessageHandler(Filters.status_update.migrate, handle_group_migration))

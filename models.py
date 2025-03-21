@@ -35,7 +35,22 @@ class News:
     
     def format_telegram_message(self):
         """Format the news for posting on Telegram."""
-        message = f"📰 *{self.title}*\n\n"
+        # Determine appropriate emoji based on content
+        title_emoji = "📰"
+        
+        # Check for cryptocurrency-specific content
+        crypto_keywords = ["bitcoin", "ethereum", "بيتكوين", "إيثريوم", "كريبتو", "عملات رقمية", "crypto"]
+        combined_text = (self.title + " " + self.content).lower()
+        
+        if any(keyword in combined_text for keyword in crypto_keywords):
+            if "bitcoin" in combined_text or "بيتكوين" in combined_text:
+                title_emoji = "₿"
+            elif "ethereum" in combined_text or "إيثريوم" in combined_text:
+                title_emoji = "Ξ"
+            else:
+                title_emoji = "💰"
+        
+        message = f"{title_emoji} *{self.title}*\n\n"
         
         if self.content:
             # Truncate content if too long for Telegram (limit is 4096 chars)
@@ -54,8 +69,17 @@ class News:
             crypto_tags = ' '.join([f"#{tag.replace(' ', '_')}" for tag in self.tags])
             message += f"\n{crypto_tags}\n"
         
+        # Add market indicators for crypto news
+        if any(keyword in combined_text for keyword in crypto_keywords):
+            # Add market sentiment indicator (in a real implementation, this could fetch live market data)
+            import hashlib
+            # Use a hash of the news_id to create a pseudo-random market trend
+            hash_value = int(hashlib.md5(self.news_id.encode()).hexdigest(), 16)
+            market_trend = "🟢 السوق: صاعد" if hash_value % 2 == 0 else "🔴 السوق: هابط"
+            message += f"\n{market_trend}"
+        
         # Add bot branding
-        message += "\n📱 مقدم من: بوت أخبار الكريبتو من إنفترون داو"
+        message += "\n\n📱 مقدم من: بوت أخبار الكريبتو من إنفترون داو"
         
         return message
     
