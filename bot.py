@@ -289,19 +289,48 @@ async def broadcast_news(news: News):
 
 def send_hourly_price_update(context: CallbackContext):
     """Send price updates to all chats."""
+    from pycoingecko import CoinGeckoAPI
+    cg = CoinGeckoAPI()
     chats = database.get_all_chats()
-    for chat in chats:
-        try:
-            # Create a fake update object to reuse price_command logic
-            message = context.bot.send_message(
-                chat_id=chat['chat_id'],
-                text="💰 *تحديث الأسعار التلقائي كل ساعة:*",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            update = Update(0, message)
-            price_command(update, context)
-        except Exception as e:
-            logger.error(f"Failed to send price update to chat {chat['chat_id']}: {e}")
+    
+    try:
+        # Fetch prices once for all chats
+        prices_data = cg.get_price(
+            ids=['bitcoin', 'ethereum', 'solana', 'binancecoin', 'cardano'],
+            vs_currencies='usd',
+            include_24hr_change=True
+        )
+        
+        prices = {
+            "BTC": {"price": prices_data['bitcoin']['usd'], "change": prices_data['bitcoin']['usd_24h_change']},
+            "ETH": {"price": prices_data['ethereum']['usd'], "change": prices_data['ethereum']['usd_24h_change']},
+            "SOL": {"price": prices_data['solana']['usd'], "change": prices_data['solana']['usd_24h_change']},
+            "BNB": {"price": prices_data['binancecoin']['usd'], "change": prices_data['binancecoin']['usd_24h_change']},
+            "ADA": {"price": prices_data['cardano']['usd'], "change": prices_data['cardano']['usd_24h_change']}
+        }
+        
+        # Format message
+        price_message = "💰 *تحديث الأسعار التلقائي كل ساعة:*\n\n"
+        for coin, data in prices.items():
+            change_emoji = "🟢" if data["change"] > 0 else "🔴"
+            change_sign = "+" if data["change"] > 0 else ""
+            price_message += f"{coin}: ${data['price']:,.2f} {change_emoji} {change_sign}{data['change']:.2f}%\n"
+        
+        price_message += "\n⚠️ *ملاحظة*: هذه الأسعار تقريبية لأغراض العرض فقط."
+        
+        # Send to all chats
+        for chat in chats:
+            try:
+                context.bot.send_message(
+                    chat_id=chat['chat_id'],
+                    text=price_message,
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            except Exception as e:
+                logger.error(f"Failed to send price update to chat {chat['chat_id']}: {e}")
+                
+    except Exception as e:
+        logger.error(f"Failed to fetch prices for hourly update: {e}")
 
 def setup_bot():
     """Set up the bot with handlers and webhook."""
