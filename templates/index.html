@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram News Broadcasting Bot</title>
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .json-example {
+            background-color: var(--bs-dark);
+            border-radius: 6px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        .bot-link {
+            background-color: var(--bs-primary);
+            color: white;
+            font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .bot-link:hover {
+            background-color: var(--bs-primary-dark);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h1 class="h4 mb-0">Telegram News Broadcasting Bot</h1>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-success" role="alert">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <strong>Bot is active and ready to receive news!</strong>
+                        </div>
+
+                        <h2 class="h5 mt-4">About This Bot</h2>
+                        <p>
+                            This bot receives news via webhooks and automatically broadcasts them
+                            to all Telegram groups it has been added to.
+                        </p>
+
+                        {% if bot_username %}
+                        <p>
+                            <a href="https://t.me/{{ bot_username }}" class="bot-link">
+                                Add @{{ bot_username }} to your group
+                            </a>
+                        </p>
+                        {% endif %}
+
+                        <h2 class="h5 mt-4">How to Use</h2>
+                        <ol>
+                            <li>Add the bot to your Telegram group</li>
+                            <li>Make sure the bot has permission to send messages</li>
+                            <li>Send news to the webhook endpoint</li>
+                        </ol>
+
+                        <h2 class="h5 mt-4">Webhook API Reference</h2>
+                        <p>
+                            To send news to the bot, make a POST request to <code>/news-webhook</code> with the following JSON structure:
+                        </p>
+
+                        <div class="json-example">
+<pre><code>{
+    "secret": "your_webhook_secret",
+    "news": {
+        "id": "unique_id",
+        "title": "News Title",
+        "content": "News content...",
+        "source": "Source Name",
+        "url": "https://example.com/news",
+        "image_url": "https://example.com/image.jpg",
+        "tags": ["tag1", "tag2"]
+    }
+}</code></pre>
+                        </div>
+
+                        <h2 class="h5 mt-4">Bot Commands</h2>
+                        <ul>
+                            <li><code>/start</code> - Initialize the bot</li>
+                            <li><code>/help</code> - Show help information</li>
+                            <li><code>/about</code> - About the bot</li>
+                            <li><code>/status</code> - Check if the bot is working</li>
+                        </ul>
+                    </div>
+                    <div class="card-footer text-muted">
+                        <small>To configure this bot, set the environment variables: <code>TELEGRAM_BOT_TOKEN</code>, <code>WEBHOOK_URL</code>, and <code>WEBHOOK_SECRET</code></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
