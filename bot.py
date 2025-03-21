@@ -71,6 +71,30 @@ def status_command(update: Update, context: CallbackContext) -> None:
     """Handle the /status command to check if the bot is working."""
     update.message.reply_text("✅ بوت أخبار الكريبتو يعمل بنجاح!")
 
+def price_command(update: Update, context: CallbackContext) -> None:
+    """Handle the /price command to show cryptocurrency prices."""
+    # In a real implementation, this would fetch real price data from an API
+    # For now, we're using sample data for demonstration
+    prices = {
+        "BTC": {"price": 74850.25, "change": 2.5},
+        "ETH": {"price": 3975.12, "change": 1.8},
+        "SOL": {"price": 189.45, "change": 3.2},
+        "BNB": {"price": 628.74, "change": -0.7},
+        "ADA": {"price": 0.58, "change": 1.2}
+    }
+    
+    # Format the message in Arabic
+    price_message = "💰 *أسعار العملات الرقمية الآن:*\n\n"
+    
+    for coin, data in prices.items():
+        change_emoji = "🟢" if data["change"] > 0 else "🔴"
+        change_sign = "+" if data["change"] > 0 else ""
+        price_message += f"{coin}: ${data['price']:,.2f} {change_emoji} {change_sign}{data['change']}%\n"
+    
+    price_message += "\n⚠️ *ملاحظة*: هذه الأسعار تقريبية لأغراض العرض فقط."
+    
+    update.message.reply_text(price_message, parse_mode=ParseMode.MARKDOWN)
+
 def handle_group_migration(update: Update, context: CallbackContext) -> None:
     """Handle migration to a supergroup."""
     if update.message and update.message.migrate_from_chat_id:
