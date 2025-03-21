@@ -125,18 +125,32 @@ def price_command(update: Update, context: CallbackContext) -> None:
 
 def market_command(update: Update, context: CallbackContext) -> None:
     """Handle the /market command to show cryptocurrency market information."""
-    market_info = (
-        "📊 *حالة سوق الكريبتو*\n\n"
-        "القيمة السوقية الإجمالية: $2.54 تريليون\n"
-        "حجم التداول (24 ساعة): $98.7 مليار\n"
-        "هيمنة بيتكوين: 47.8%\n"
-        "هيمنة إيثريوم: 18.2%\n\n"
-        "مؤشر الخوف والجشع: 72 (جشع)\n"
-        "اتجاه السوق: صاعد 📈\n\n"
-        "⚠️ *ملاحظة*: هذه المعلومات تقريبية لأغراض العرض فقط."
-    )
+    from pycoingecko import CoinGeckoAPI
+    cg = CoinGeckoAPI()
     
-    update.message.reply_text(market_info, parse_mode=ParseMode.MARKDOWN)
+    try:
+        global_data = cg.get_global()
+        
+        # Format numbers
+        total_mcap = float(global_data['total_market_cap']['usd']) / 1e12  # Convert to trillion
+        total_volume = float(global_data['total_volume']['usd']) / 1e9  # Convert to billion
+        btc_dominance = global_data['market_cap_percentage']['btc']
+        eth_dominance = global_data['market_cap_percentage']['eth']
+        
+        market_info = (
+            "📊 *حالة سوق الكريبتو*\n\n"
+            f"القيمة السوقية الإجمالية: ${total_mcap:.2f} تريليون\n"
+            f"حجم التداول (24 ساعة): ${total_volume:.1f} مليار\n"
+            f"هيمنة بيتكوين: {btc_dominance:.1f}%\n"
+            f"هيمنة إيثريوم: {eth_dominance:.1f}%\n\n"
+            f"اتجاه السوق: {'📈 صاعد' if total_mcap > 2.5 else '📉 هابط'}\n\n"
+            "⚠️ *ملاحظة*: البيانات من CoinGecko"
+        )
+        
+        update.message.reply_text(market_info, parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        logger.error(f"Failed to fetch market data: {e}")
+        update.message.reply_text("⚠️ عذراً، حدث خطأ أثناء جلب بيانات السوق. الرجاء المحاولة لاحقاً.")
 
 
 def feedback_command(update: Update, context: CallbackContext) -> None:
