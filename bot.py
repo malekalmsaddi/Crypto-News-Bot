@@ -287,6 +287,22 @@ async def broadcast_news(news: News):
     logger.info(f"Broadcast completed. Success: {success_count}, Errors: {error_count}")
     return success_count, error_count
 
+def send_hourly_price_update(context: CallbackContext):
+    """Send price updates to all chats."""
+    chats = database.get_all_chats()
+    for chat in chats:
+        try:
+            # Create a fake update object to reuse price_command logic
+            message = context.bot.send_message(
+                chat_id=chat['chat_id'],
+                text="💰 *تحديث الأسعار التلقائي كل ساعة:*",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            update = Update(0, message)
+            price_command(update, context)
+        except Exception as e:
+            logger.error(f"Failed to send price update to chat {chat['chat_id']}: {e}")
+
 def setup_bot():
     """Set up the bot with handlers and webhook."""
     # Create an updater instance
@@ -301,6 +317,10 @@ def setup_bot():
     dispatcher.add_handler(CommandHandler("price", price_command))
     dispatcher.add_handler(CommandHandler("market", market_command))
     dispatcher.add_handler(CommandHandler("feedback", feedback_command))
+    
+    # Schedule hourly price updates
+    job_queue = updater.job_queue
+    job_queue.run_repeating(send_hourly_price_update, interval=3600, first=0)
     
     # Track group migrations
     dispatcher.add_handler(MessageHandler(Filters.status_update.migrate, handle_group_migration))
