@@ -129,20 +129,47 @@ def chat_member_updated(update: Update, context: CallbackContext) -> None:
         return
     
     chat_id = result.chat.id
-    chat_title = result.chat.title
+    chat_title = result.chat.title or f"Chat {chat_id}"  # Fallback title if none
     chat_type = result.chat.type
+    
+    # Log the update details for debugging
+    logger.info(f"Bot membership update in {chat_title} ({chat_id}): "
+                f"{result.old_chat_member.status} -> {result.new_chat_member.status}")
     
     # Bot was added to a group
     if (result.old_chat_member.status in ['left', 'kicked'] and 
             result.new_chat_member.status in ['member', 'administrator']):
+        # Add chat to database
         database.add_chat(chat_id, chat_title, chat_type)
         logger.info(f"Bot was added to {chat_title} ({chat_id})")
+        
+        # Send welcome message if it's a group or supergroup
+        if chat_type in ['group', 'supergroup']:
+            try:
+                welcome_message = (
+                    "👋 أهلاً! تم إضافة بوت أخبار الكريبتو إلى هذه المجموعة.\n\n"
+                    "سأقوم بنشر أخبار الكريبتو تلقائياً هنا.\n\n"
+                    "الأوامر المتاحة:\n"
+                    "/help - عرض معلومات المساعدة\n"
+                    "/about - معلومات عن البوت\n"
+                    "/price - عرض أسعار العملات الرقمية\n"
+                )
+                context.bot.send_message(chat_id=chat_id, text=welcome_message)
+            except Exception as e:
+                logger.error(f"Failed to send welcome message to {chat_id}: {e}")
         
     # Bot was removed from a group
     elif (result.old_chat_member.status in ['member', 'administrator'] and 
             result.new_chat_member.status in ['left', 'kicked']):
         database.remove_chat(chat_id)
         logger.info(f"Bot was removed from {chat_title} ({chat_id})")
+        
+    # Bot permissions were changed but still in the group
+    elif (result.old_chat_member.status != result.new_chat_member.status and
+          result.new_chat_member.status in ['member', 'administrator']):
+        # Update the chat in database if there are permission changes
+        database.add_chat(chat_id, chat_title, chat_type)
+        logger.info(f"Bot status updated in {chat_title} ({chat_id}) to {result.new_chat_member.status}")
 
 async def broadcast_news(news: News):
     """Broadcast news to all chats where the bot is a member."""
@@ -200,9 +227,12 @@ def setup_bot():
     dispatcher.add_handler(CommandHandler("status", status_command))
     dispatcher.add_handler(CommandHandler("price", price_command))
     
-    # Track group migrations and bot membership changes
+    # Track group migrations
     dispatcher.add_handler(MessageHandler(Filters.status_update.migrate, handle_group_migration))
-    dispatcher.add_handler(MessageHandler(Filters.status_update.chat_member, chat_member_updated))
+    
+    # Track bot membership changes (when added to or removed from a group)
+    from telegram.ext import ChatMemberHandler
+    dispatcher.add_handler(ChatMemberHandler(chat_member_updated, ChatMemberHandler.MY_CHAT_MEMBER))
     
     if WEBHOOK_URL:
         # Set webhook
