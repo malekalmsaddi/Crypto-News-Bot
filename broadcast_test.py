@@ -3,109 +3,77 @@ import os
 import asyncio
 from models import News
 from telegram import Bot, ParseMode
+from config import TELEGRAM_BOT_TOKEN # Added import
+from database import get_all_chats, log_message # Added import
+from datetime import datetime # Added import
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Get the bot token from environment variables
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-TEST_CHAT_ID = "-1001234567890"  # Our test group chat ID
+#Removed original send_direct_test_message function
 
-async def send_direct_test_message():
-    """
-    Send a test message directly to a specific Telegram chat.
-    This is useful for testing without needing to simulate the webhook process.
-    """
+async def test_broadcast():
+    """Send a test broadcast message to all chats"""
     if not TELEGRAM_BOT_TOKEN:
-        logger.error("TELEGRAM_BOT_TOKEN not found in environment variables.")
+        print("❌ TELEGRAM_BOT_TOKEN not found in environment variables.")
         return False
-    
+
     try:
+        # Initialize bot
         bot = Bot(token=TELEGRAM_BOT_TOKEN)
-        
-        # Get bot info - in PTB v13.15, get_me() is not async
-        bot_info = bot.get_me()
-        logger.info(f"Connected to bot: {bot_info.first_name} (@{bot_info.username})")
-        
-        # Create a test news item about Bitcoin in Arabic
+
+        # Create test news
         test_news = News(
-            news_id="broadcast-test-001",
-            title="بيتكوين يتجاوز سعر 75 ألف دولار لأول مرة",
-            content="في تطور مثير، تجاوز سعر بيتكوين 75000 دولار أمريكي لأول مرة في التاريخ، مما يعكس ثقة المستثمرين المتزايدة في العملات الرقمية. ويأتي هذا الارتفاع وسط إقبال مؤسسي متزايد وتوقعات إيجابية للسوق.",
-            source="بوت أخبار الكريبتو - اختبار",
-            url="https://example.com/btc-75k",
+            news_id=f"test-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+            title="🔄 اختبار البث المباشر",
+            content="هذه رسالة اختبار للتأكد من عمل نظام البث المباشر في بوت أخبار الكريبتو. إذا وصلتك هذه الرسالة، فهذا يعني أن النظام يعمل بشكل صحيح.",
+            source="بوت أخبار الكريبتو",
+            url="https://example.com/test",
             image_url="",
-            tags=["بيتكوين", "سعر_قياسي", "عملات_رقمية", "استثمار"]
+            tags=["اختبار", "بث_مباشر"]
         )
-        
-        # Format the message using our enhanced formatter
-        formatted_message = test_news.format_telegram_message()
-        logger.info(f"Formatted message:\n{formatted_message}")
-        
-        # First try to send with plain text (no formatting)
-        print(f"\nAttempting to send plain text message to chat ID: {TEST_CHAT_ID}")
-        simple_message = f"🔄 اختبار: بيتكوين يتجاوز 75 ألف دولار\n\nهذه رسالة اختبار بدون تنسيق من بوت أخبار الكريبتو."
-        
-        await bot.send_message(
-            chat_id=TEST_CHAT_ID,
-            text=simple_message
-        )
-        print("✅ Plain text message sent successfully!")
-        
-        # Now try to send the formatted message with limited markdown
-        print(f"\nAttempting to send formatted message to chat ID: {TEST_CHAT_ID}")
-        
-        try:
-            # We'll use a more careful formatting approach to avoid Markdown parsing issues
-            safe_message = (
-                f"₿ *بيتكوين يتجاوز سعر 75 ألف دولار لأول مرة*\n\n"
-                f"في تطور مثير، تجاوز سعر بيتكوين 75000 دولار أمريكي لأول مرة في التاريخ، "
-                f"مما يعكس ثقة المستثمرين المتزايدة في العملات الرقمية.\n\n"
-                f"📊 *المصدر*: بوت أخبار الكريبتو - اختبار\n"
-                f"🔗 [اقرأ المزيد](https://example.com/btc-75k)\n\n"
-                f"#بيتكوين #سعر_قياسي #عملات_رقمية #استثمار\n\n"
-                f"🟢 السوق: صاعد\n\n"
-                f"📱 مقدم من: بوت أخبار الكريبتو من إنفترون داو"
-            )
-            
-            await bot.send_message(
-                chat_id=TEST_CHAT_ID,
-                text=safe_message,
-                parse_mode=ParseMode.MARKDOWN,
-                disable_web_page_preview=False
-            )
-            print("✅ Formatted message sent successfully!")
-            
-        except Exception as e:
-            print(f"❌ Error sending formatted message: {str(e)}")
-            
-            # If formatted message fails, try without parse_mode
-            print("\nRetrying with original formatted message but without parse_mode...")
+
+        # Get all chats
+        chats = get_all_chats()
+        if not chats:
+            print("❌ No chats found in database.")
+            return False
+
+        print(f"\nBroadcasting to {len(chats)} chats...")
+        success_count = 0
+        error_count = 0
+
+        # Send to each chat
+        for chat in chats:
             try:
-                await bot.send_message(
-                    chat_id=TEST_CHAT_ID,
-                    text=formatted_message
+                message = await bot.send_message(
+                    chat_id=chat['chat_id'],
+                    text=test_news.format_telegram_message(),
+                    parse_mode=None
                 )
-                print("✅ Unformatted original message sent successfully!")
-            except Exception as e2:
-                print(f"❌ Error sending unformatted message: {str(e2)}")
-                return False
-        
-        return True
-        
+                log_message(test_news.news_id, chat['chat_id'], message.message_id)
+                print(f"✓ Sent to {chat['chat_title']}")
+                success_count += 1
+                await asyncio.sleep(0.1)  # Prevent rate limiting
+            except Exception as e:
+                print(f"❌ Failed to send to {chat['chat_title']}: {str(e)}")
+                error_count += 1
+
+        print(f"\n📊 Broadcast Results:")
+        print(f"✓ Success: {success_count}")
+        print(f"❌ Errors: {error_count}")
+        return success_count > 0
+
     except Exception as e:
-        logger.error(f"Failed to execute test broadcast: {e}")
-        print(f"\n❌ Error in test broadcast: {str(e)}")
+        print(f"❌ Error: {str(e)}")
         return False
 
 if __name__ == "__main__":
-    print("Starting broadcast test...")
-    # Run the async function
-    success = asyncio.run(send_direct_test_message())
-    
+    print("🚀 Starting broadcast test...")
+    success = asyncio.run(test_broadcast())
     if success:
-        print("\n✅ Test completed successfully!")
+        print("\n✅ Broadcast test completed successfully!")
     else:
-        print("\n❌ Test failed.")
+        print("\n❌ Broadcast test failed.")
