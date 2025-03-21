@@ -13,7 +13,7 @@ if not TELEGRAM_BOT_TOKEN:
     logging.error("Telegram bot token not found in environment variables!")
 
 # Webhook configuration
-WEBHOOK_URL = os.environ.get('WEBHOOK_URL', 'https://crypto-news-bot.yourdomain.repl.co')
+WEBHOOK_URL = os.environ.get('WEBHOOK_URL', '')  # Empty default to enable polling mode
 if not WEBHOOK_URL:
     logging.warning("Webhook URL not found in environment variables. The bot won't be able to receive webhooks.")
 
