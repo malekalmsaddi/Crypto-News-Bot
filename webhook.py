@@ -65,7 +65,13 @@ def news_webhook():
             logger.error(f"Invalid news format: {e}")
             return jsonify({"error": str(e)}), 400
         
-        # Log webhook
+        # Log webhook with extra details for crypto news
+        crypto_tags = data['news'].get('tags', [])
+        is_crypto_news = any(crypto_term in ' '.join(crypto_tags).lower() for crypto_term in ['crypto', 'bitcoin', 'ethereum', 'كريبتو', 'بيتكوين', 'إيثريوم'])
+        
+        if is_crypto_news:
+            logger.info(f"Received cryptocurrency news: {news.title}")
+        
         database.log_webhook(news.news_id, json.dumps(data['news']))
         
         # Start async handling in a separate thread
