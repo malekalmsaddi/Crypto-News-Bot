@@ -160,11 +160,11 @@ async def broadcast_news(news: News):
         chat_id = chat['chat_id']
         
         try:
-            # Send message
+            # Send message with no markdown formatting to avoid parsing errors
             message = await bot.send_message(
                 chat_id=chat_id,
                 text=message_text,
-                parse_mode=ParseMode.MARKDOWN,
+                parse_mode=None,  # No Markdown parsing
                 disable_web_page_preview=False if news.image_url else True
             )
             

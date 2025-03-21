@@ -3,6 +3,7 @@ import json
 import asyncio
 import threading
 from flask import Blueprint, request, jsonify, current_app, render_template
+from telegram import ParseMode
 
 from config import WEBHOOK_SECRET
 import database
@@ -39,7 +40,8 @@ def news_webhook():
             "url": "https://example.com/news",
             "image_url": "https://example.com/image.jpg",
             "tags": ["tag1", "tag2"]
-        }
+        },
+        "target_chat_id": "optional_specific_chat_id"  # Optional: Send only to this chat
     }
     """
     # Verify content type
@@ -74,12 +76,36 @@ def news_webhook():
         
         database.log_webhook(news.news_id, json.dumps(data['news']))
         
+        # Check if a specific target chat is provided
+        target_chat_id = data.get('target_chat_id')
+        
         # Start async handling in a separate thread
         def process_broadcast():
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
-                success_count, error_count = loop.run_until_complete(broadcast_news(news))
+                if target_chat_id:
+                    # Send to a specific chat only
+                    logger.info(f"Sending news to specific chat ID: {target_chat_id}")
+                    from bot import bot  # Import here to avoid circular imports
+                    
+                    message_text = news.format_telegram_message()
+                    message = loop.run_until_complete(
+                        bot.send_message(
+                            chat_id=target_chat_id,
+                            text=message_text,
+                            parse_mode=ParseMode.MARKDOWN,
+                            disable_web_page_preview=False if news.image_url else True
+                        )
+                    )
+                    
+                    database.log_message(news.news_id, target_chat_id, message.message_id)
+                    success_count, error_count = 1, 0
+                    logger.info(f"Message sent to specific chat {target_chat_id}")
+                else:
+                    # Broadcast to all registered chats
+                    success_count, error_count = loop.run_until_complete(broadcast_news(news))
+                
                 logger.info(f"Broadcast completed. Success: {success_count}, Errors: {error_count}")
             except Exception as e:
                 logger.error(f"Error broadcasting news: {e}")
@@ -90,11 +116,20 @@ def news_webhook():
         thread.daemon = True
         thread.start()
         
-        return jsonify({
+        response_data = {
             "status": "success",
             "message": "News broadcast request accepted",
             "news_id": news.news_id
-        })
+        }
+        
+        # Add target information to the response
+        if target_chat_id:
+            response_data["target_mode"] = "single_chat"
+            response_data["target_chat_id"] = target_chat_id
+        else:
+            response_data["target_mode"] = "broadcast"
+        
+        return jsonify(response_data)
         
     except Exception as e:
         logger.exception(f"Error processing webhook: {e}")
