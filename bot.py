@@ -109,6 +109,50 @@ def price_command(update: Update, context: CallbackContext) -> None:
     
     update.message.reply_text(price_message, parse_mode=ParseMode.MARKDOWN)
 
+
+def market_command(update: Update, context: CallbackContext) -> None:
+    """Handle the /market command to show cryptocurrency market information."""
+    market_info = (
+        "📊 *حالة سوق الكريبتو*\n\n"
+        "القيمة السوقية الإجمالية: $2.54 تريليون\n"
+        "حجم التداول (24 ساعة): $98.7 مليار\n"
+        "هيمنة بيتكوين: 47.8%\n"
+        "هيمنة إيثريوم: 18.2%\n\n"
+        "مؤشر الخوف والجشع: 72 (جشع)\n"
+        "اتجاه السوق: صاعد 📈\n\n"
+        "⚠️ *ملاحظة*: هذه المعلومات تقريبية لأغراض العرض فقط."
+    )
+    
+    update.message.reply_text(market_info, parse_mode=ParseMode.MARKDOWN)
+
+
+def feedback_command(update: Update, context: CallbackContext) -> None:
+    """Handle the /feedback command for receiving user feedback."""
+    # Check if user provided feedback message
+    if context.args:
+        # Join all arguments into a feedback message
+        feedback_message = ' '.join(context.args)
+        
+        # Log the feedback
+        user = update.effective_user
+        chat = update.effective_chat
+        logger.info(f"Feedback received from {user.id} ({user.username}): {feedback_message}")
+        
+        # Thank the user
+        update.message.reply_text(
+            "👍 شكراً لك على ملاحظاتك! تم استلامها وسيتم النظر فيها.",
+            parse_mode=ParseMode.MARKDOWN
+        )
+    else:
+        # No feedback message provided, send instructions
+        instructions = (
+            "🔄 *إرسال ملاحظات أو اقتراحات*\n\n"
+            "لإرسال ملاحظاتك، استخدم الأمر على الشكل التالي:\n\n"
+            "`/feedback أحب الأخبار التي يوفرها البوت، لكن أتمنى أن تكون هناك تنبيهات للأسعار`\n\n"
+            "نحن نقدر ملاحظاتك ونسعى لتحسين البوت باستمرار!"
+        )
+        update.message.reply_text(instructions, parse_mode=ParseMode.MARKDOWN)
+
 def handle_group_migration(update: Update, context: CallbackContext) -> None:
     """Handle migration to a supergroup."""
     if update.message and update.message.migrate_from_chat_id:
@@ -226,6 +270,8 @@ def setup_bot():
     dispatcher.add_handler(CommandHandler("about", about_command))
     dispatcher.add_handler(CommandHandler("status", status_command))
     dispatcher.add_handler(CommandHandler("price", price_command))
+    dispatcher.add_handler(CommandHandler("market", market_command))
+    dispatcher.add_handler(CommandHandler("feedback", feedback_command))
     
     # Track group migrations
     dispatcher.add_handler(MessageHandler(Filters.status_update.migrate, handle_group_migration))
