@@ -42,17 +42,20 @@ def start_command(update: Update, context: CallbackContext) -> None:
 def help_command(update: Update, context: CallbackContext) -> None:
     """Handle the /help command."""
     help_text = (
-        "📢 *مساعدة بوت أخبار الكريبتو*\n\n"
-        "يقوم هذا البوت باستقبال أخبار الكريبتو عبر الويب هوك وإعادة نشرها تلقائياً في جميع المجموعات المضاف إليها.\n\n"
-        "*الأوامر:*\n"
+        "📢 *مساعدة بوت أخبار الكريبتو - مقدم من إنفترون داو*\n\n"
+        "هذا البوت مصمم لنشر أخبار العملات الرقمية تلقائياً داخل مجموعات تيليجرام، مع تحديث الأسعار لحظة بلحظة.\n\n"
+        "الأوامر المتاحة:\n"
         "/start - بدء استخدام البوت\n"
-        "/help - عرض رسالة المساعدة هذه\n"
+        "/help - عرض رسالة المساعدة\n"
         "/about - معلومات عن البوت\n"
-        "/status - التحقق من عمل البوت\n"
-        "/price - عرض أسعار العملات الرقمية\n\n"
-        "💡 *نصائح:*\n"
-        "• أضف البوت إلى مجموعتك لتلقي أخبار الكريبتو تلقائياً\n"
-        "• استخدم أمر /price في أي وقت لمعرفة أحدث أسعار العملات الرقمية\n"
+        "/status - التحقق من حالة البوت\n"
+        "/price - عرض أحدث أسعار العملات الرقمية\n\n"
+        "💡 *نصائح الاستخدام:*\n"
+        "• أضف البوت إلى مجموعتك ليصلك كل جديد في عالم الكريبتو\n"
+        "• استخدم /price في أي وقت لمتابعة أسعار العملات الرقمية مباشرة\n\n"
+        "🔗 *انضم إلى مجتمعنا العربي:*\n"
+        "https://t.me/+CMoM9cPlV5syNGE0\n"
+        "إنفترون داو - نبحث عن الجواهر ونموّلها"
     )
     
     update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
@@ -60,23 +63,25 @@ def help_command(update: Update, context: CallbackContext) -> None:
 def about_command(update: Update, context: CallbackContext) -> None:
     """Handle the /about command."""
     about_text = (
-        "📰 *بوت أخبار الكريبتو من إنفترون داو*\n\n"
-        "تم تصميم هذا البوت لنشر أخبار الكريبتو تلقائياً في مجموعات تيليجرام.\n\n"
-        "يستقبل البوت الأخبار عبر الويب هوك ويعيد نشرها في جميع المجموعات المضاف إليها.\n\n"
-        "*المميزات:*\n"
-        "• نشر أخبار الكريبتو تلقائياً\n"
-        "• عرض أسعار العملات الرقمية\n"
-        "• تتبع المجموعات\n"
-        "• تنسيق منشورات الأخبار بشكل جميل\n"
-        "• دعم اللغة العربية بالكامل\n\n"
-        "*العملات المدعومة:*\n"
+        "💎 *بوت أخبار الكريبتو - من تطوير وإنفاذ إنفترون داو* 💎\n\n"
+        "🔹 منصة ذكية مدعومة من إنفترون داو – رائدة الاستثمار والتمويل اللامركزي عبر البلوك تشين 🔹\n\n"
+        "تم تصميم هذا البوت خصيصاً ليكون امتداداً لرؤية إنفترون داو في تمكين المجتمعات الرقمية من الوصول إلى أحدث أخبار العملات الرقمية والأسواق المالية بكل سهولة واحترافية داخل مجموعات تيليجرام.\n\n"
+        "✨ *مميزات البوت:*\n"
+        "✅ نشر أخبار العملات الرقمية بشكل تلقائي من مصادر موثوقة\n"
+        "✅ عرض أسعار العملات الرقمية محدثة لحظة بلحظة\n"
+        "✅ متابعة أداء وتفاعل المجموعات بشكل ذكي\n"
+        "✅ تنسيق احترافي وجذاب للمنشورات\n"
+        "✅ دعم كامل للغة العربية\n\n"
+        "🚀 *العملات المدعومة (والمزيد قادم):*\n"
         "• بيتكوين (BTC)\n"
         "• إيثريوم (ETH)\n"
         "• سولانا (SOL)\n"
         "• بينانس كوين (BNB)\n"
         "• كاردانو (ADA)\n"
-        "وغيرها الكثير...\n\n"
-        "📱 هذا البوت مقدم من: إنفترون داو"
+        "... وأكثر من ذلك\n\n"
+        "🌐 *لماذا تختار بوت إنفترون داو؟*\n"
+        "لأن هذا البوت ليس مجرد أداة للنشر، بل هو جزء من منظومة إنفترون داو التي تقود مستقبل الاستثمار والتمويل اللامركزي عبر تقنيات البلوك تشين. هدفنا تعزيز الشفافية، تمكين المجتمعات، ونشر المعرفة المالية الدقيقة والمحدثة.\n\n"
+        "📱 هذا البوت مقدم حصرياً من: *إنفترون داو* \"نبحث عن الجواهر... ونموّلها\""
     )
     
     update.message.reply_text(about_text, parse_mode=ParseMode.MARKDOWN)
@@ -87,15 +92,28 @@ def status_command(update: Update, context: CallbackContext) -> None:
 
 def price_command(update: Update, context: CallbackContext) -> None:
     """Handle the /price command to show cryptocurrency prices."""
-    # In a real implementation, this would fetch real price data from an API
-    # For now, we're using sample data for demonstration
-    prices = {
-        "BTC": {"price": 74850.25, "change": 2.5},
-        "ETH": {"price": 3975.12, "change": 1.8},
-        "SOL": {"price": 189.45, "change": 3.2},
-        "BNB": {"price": 628.74, "change": -0.7},
-        "ADA": {"price": 0.58, "change": 1.2}
-    }
+    from pycoingecko import CoinGeckoAPI
+    cg = CoinGeckoAPI()
+    
+    try:
+        # Fetch prices and 24h changes
+        prices_data = cg.get_price(
+            ids=['bitcoin', 'ethereum', 'solana', 'binancecoin', 'cardano'],
+            vs_currencies='usd',
+            include_24hr_change=True
+        )
+        
+        prices = {
+            "BTC": {"price": prices_data['bitcoin']['usd'], "change": prices_data['bitcoin']['usd_24h_change']},
+            "ETH": {"price": prices_data['ethereum']['usd'], "change": prices_data['ethereum']['usd_24h_change']},
+            "SOL": {"price": prices_data['solana']['usd'], "change": prices_data['solana']['usd_24h_change']},
+            "BNB": {"price": prices_data['binancecoin']['usd'], "change": prices_data['binancecoin']['usd_24h_change']},
+            "ADA": {"price": prices_data['cardano']['usd'], "change": prices_data['cardano']['usd_24h_change']}
+        }
+    except Exception as e:
+        logger.error(f"Failed to fetch prices: {e}")
+        update.message.reply_text("⚠️ عذراً، حدث خطأ أثناء جلب الأسعار. الرجاء المحاولة لاحقاً.")
+        return
     
     # Format the message in Arabic
     price_message = "💰 *أسعار العملات الرقمية الآن:*\n\n"
@@ -112,18 +130,32 @@ def price_command(update: Update, context: CallbackContext) -> None:
 
 def market_command(update: Update, context: CallbackContext) -> None:
     """Handle the /market command to show cryptocurrency market information."""
-    market_info = (
-        "📊 *حالة سوق الكريبتو*\n\n"
-        "القيمة السوقية الإجمالية: $2.54 تريليون\n"
-        "حجم التداول (24 ساعة): $98.7 مليار\n"
-        "هيمنة بيتكوين: 47.8%\n"
-        "هيمنة إيثريوم: 18.2%\n\n"
-        "مؤشر الخوف والجشع: 72 (جشع)\n"
-        "اتجاه السوق: صاعد 📈\n\n"
-        "⚠️ *ملاحظة*: هذه المعلومات تقريبية لأغراض العرض فقط."
-    )
+    from pycoingecko import CoinGeckoAPI
+    cg = CoinGeckoAPI()
     
-    update.message.reply_text(market_info, parse_mode=ParseMode.MARKDOWN)
+    try:
+        global_data = cg.get_global()
+        
+        # Format numbers
+        total_mcap = float(global_data['total_market_cap']['usd']) / 1e12  # Convert to trillion
+        total_volume = float(global_data['total_volume']['usd']) / 1e9  # Convert to billion
+        btc_dominance = global_data['market_cap_percentage']['btc']
+        eth_dominance = global_data['market_cap_percentage']['eth']
+        
+        market_info = (
+            "📊 *حالة سوق الكريبتو*\n\n"
+            f"القيمة السوقية الإجمالية: ${total_mcap:.2f} تريليون\n"
+            f"حجم التداول (24 ساعة): ${total_volume:.1f} مليار\n"
+            f"هيمنة بيتكوين: {btc_dominance:.1f}%\n"
+            f"هيمنة إيثريوم: {eth_dominance:.1f}%\n\n"
+            f"اتجاه السوق: {'📈 صاعد' if total_mcap > 2.5 else '📉 هابط'}\n\n"
+            "⚠️ *ملاحظة*: البيانات من CoinGecko"
+        )
+        
+        update.message.reply_text(market_info, parse_mode=ParseMode.MARKDOWN)
+    except Exception as e:
+        logger.error(f"Failed to fetch market data: {e}")
+        update.message.reply_text("⚠️ عذراً، حدث خطأ أثناء جلب بيانات السوق. الرجاء المحاولة لاحقاً.")
 
 
 def feedback_command(update: Update, context: CallbackContext) -> None:
@@ -258,6 +290,51 @@ async def broadcast_news(news: News):
     logger.info(f"Broadcast completed. Success: {success_count}, Errors: {error_count}")
     return success_count, error_count
 
+def send_hourly_price_update(context: CallbackContext):
+    """Send price updates to all chats."""
+    from pycoingecko import CoinGeckoAPI
+    cg = CoinGeckoAPI()
+    chats = database.get_all_chats()
+    
+    try:
+        # Fetch prices once for all chats
+        prices_data = cg.get_price(
+            ids=['bitcoin', 'ethereum', 'solana', 'binancecoin', 'cardano'],
+            vs_currencies='usd',
+            include_24hr_change=True
+        )
+        
+        prices = {
+            "BTC": {"price": prices_data['bitcoin']['usd'], "change": prices_data['bitcoin']['usd_24h_change']},
+            "ETH": {"price": prices_data['ethereum']['usd'], "change": prices_data['ethereum']['usd_24h_change']},
+            "SOL": {"price": prices_data['solana']['usd'], "change": prices_data['solana']['usd_24h_change']},
+            "BNB": {"price": prices_data['binancecoin']['usd'], "change": prices_data['binancecoin']['usd_24h_change']},
+            "ADA": {"price": prices_data['cardano']['usd'], "change": prices_data['cardano']['usd_24h_change']}
+        }
+        
+        # Format message
+        price_message = "💰 *تحديث الأسعار التلقائي كل ساعة:*\n\n"
+        for coin, data in prices.items():
+            change_emoji = "🟢" if data["change"] > 0 else "🔴"
+            change_sign = "+" if data["change"] > 0 else ""
+            price_message += f"{coin}: ${data['price']:,.2f} {change_emoji} {change_sign}{data['change']:.2f}%\n"
+        
+        price_message += "\n⚠️ *ملاحظة*: هذه الأسعار تقريبية لأغراض العرض فقط."
+        
+        # Send to all chats
+        for chat in chats:
+            try:
+                context.bot.send_message(
+                    chat_id=chat['chat_id'],
+                    text=price_message,
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            except Exception as e:
+                logger.error(f"Failed to send price update to chat {chat['chat_id']}: {e}")
+                
+    except Exception as e:
+        logger.error(f"Failed to fetch prices for hourly update: {e}")
+
 def setup_bot():
     """Set up the bot with handlers and webhook."""
     # Create an updater instance
@@ -272,6 +349,10 @@ def setup_bot():
     dispatcher.add_handler(CommandHandler("price", price_command))
     dispatcher.add_handler(CommandHandler("market", market_command))
     dispatcher.add_handler(CommandHandler("feedback", feedback_command))
+    
+    # Schedule hourly price updates
+    job_queue = updater.job_queue
+    job_queue.run_repeating(send_hourly_price_update, interval=3600, first=0)
     
     # Track group migrations
     dispatcher.add_handler(MessageHandler(Filters.status_update.migrate, handle_group_migration))
