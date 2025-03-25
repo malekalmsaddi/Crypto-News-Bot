@@ -1,31 +1,48 @@
 import os
 import logging
+from dotenv import load_dotenv
+from pathlib import Path
 
-# Configure logging
+# ✅ Load environment variables from .env file (explicit path)
+load_dotenv(dotenv_path=Path('.') / '.env')
+
+# ✅ Configure logging
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
-# Bot configuration
-TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '7542350946:AAHJD_P3Q2x42ScyWxDlq7KKcz4NdfuOCYk')
+# =========================
+# 🔑 Bot Configuration
+# =========================
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 if not TELEGRAM_BOT_TOKEN:
-    logging.error("Telegram bot token not found in environment variables!")
+    logging.critical("❌ TELEGRAM_BOT_TOKEN is missing in environment variables!")
+    raise ValueError("TELEGRAM_BOT_TOKEN is required in .env or environment variables")
 
-# Webhook configuration
-WEBHOOK_URL = os.environ.get('WEBHOOK_URL', '')  # Empty default to enable polling mode
+# =========================
+# 🌐 Webhook Configuration
+# =========================
+WEBHOOK_URL = os.getenv('WEBHOOK_URL', '')  # Optional: fallback to polling
 if not WEBHOOK_URL:
-    logging.warning("Webhook URL not found in environment variables. The bot won't be able to receive webhooks.")
+    logging.warning("⚠️ WEBHOOK_URL is not set. Webhook mode disabled, bot will fallback to polling.")
 
-# Secret key for webhook authentication
-WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET', 'crypto_news_webhook_secret_2025')
-if WEBHOOK_SECRET == 'default_secret_key':
-    logging.warning("Using default webhook secret key. This is not secure for production.")
+WEBHOOK_SECRET = os.getenv('WEBHOOK_SECRET')
+if not WEBHOOK_SECRET:
+    logging.critical("❌ WEBHOOK_SECRET is missing! Required for secure webhook communication.")
+    raise ValueError("WEBHOOK_SECRET is required in .env or environment variables")
 
-# Flask configuration
-PORT = int(os.environ.get('PORT', 5000))
-HOST = '0.0.0.0'
-DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
+# =========================
+# ⚙️ Flask Configuration
+# =========================
+PORT = int(os.getenv('PORT', 5000))
+HOST = os.getenv('HOST', '0.0.0.0')
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-# Database configuration
-DATABASE_FILE = os.environ.get('DATABASE_FILE', 'bot_database.db')
+logging.info(f"✅ Flask configuration - HOST: {HOST}, PORT: {PORT}, DEBUG: {DEBUG}")
+
+# =========================
+# 🗄 Database Configuration
+# =========================
+DATABASE_FILE = os.getenv('DATABASE_FILE', 'bot_database.db')
+logging.info(f"✅ Database file: {DATABASE_FILE}")

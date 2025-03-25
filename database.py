@@ -5,9 +5,9 @@ from config import DATABASE_FILE
 logger = logging.getLogger(__name__)
 
 def get_db_connection():
-    """Create and return a database connection."""
+    """Create and return a database connection with thread safety."""
     try:
-        conn = sqlite3.connect(DATABASE_FILE)
+        conn = sqlite3.connect(DATABASE_FILE, check_same_thread=False)  # ✅ Allow async/threaded access
         conn.row_factory = sqlite3.Row
         return conn
     except sqlite3.Error as e:
@@ -19,8 +19,8 @@ def init_db():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
-        # Create table to store chat IDs where the bot is a member
+
+        # Chats table
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS chats (
             chat_id INTEGER PRIMARY KEY,
@@ -29,8 +29,8 @@ def init_db():
             join_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         ''')
-        
-        # Create table to store sent messages for tracking
+
+        # Messages table
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,8 +41,8 @@ def init_db():
             FOREIGN KEY (chat_id) REFERENCES chats (chat_id)
         )
         ''')
-        
-        # Create table to log received webhooks
+
+        # Webhook logs table
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS webhook_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,7 +51,30 @@ def init_db():
             received_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         ''')
-        
+
+        # Market Prices table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS market_prices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            coin TEXT UNIQUE,
+            price REAL,
+            change REAL,
+            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+
+        # Market Summary table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS market_summary (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            total_market_cap REAL,
+            total_volume REAL,
+            btc_dominance REAL,
+            eth_dominance REAL,
+            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+
         conn.commit()
         logger.info("Database initialized successfully")
     except sqlite3.Error as e:
@@ -60,8 +83,9 @@ def init_db():
     finally:
         conn.close()
 
+# --------- Chats Functions ---------
 def add_chat(chat_id, chat_title, chat_type):
-    """Add a new chat to the database."""
+    """Add or update a chat in the database."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -94,7 +118,7 @@ def remove_chat(chat_id):
         conn.close()
 
 def get_all_chats():
-    """Get all chats from the database."""
+    """Fetch all chats from the database."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -107,8 +131,9 @@ def get_all_chats():
     finally:
         conn.close()
 
+# --------- Webhook / Messages Logging ---------
 def log_webhook(news_id, content):
-    """Log a received webhook."""
+    """Log webhook data into the database."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -126,7 +151,7 @@ def log_webhook(news_id, content):
         conn.close()
 
 def log_message(news_id, chat_id, message_id):
-    """Log a sent message."""
+    """Log a sent message into the database."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -139,5 +164,77 @@ def log_message(news_id, chat_id, message_id):
     except sqlite3.Error as e:
         logger.error(f"Error logging message: {e}")
         return False
+    finally:
+        conn.close()
+
+# --------- Market Data Update Functions ---------
+def update_market_price(coin, price, change):
+    """Insert or update a coin price."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO market_prices (coin, price, change, last_updated)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(coin) DO UPDATE SET
+                price=excluded.price,
+                change=excluded.change,
+                last_updated=CURRENT_TIMESTAMP
+        ''', (coin, price, change))
+        conn.commit()
+    except sqlite3.Error as e:
+        logger.error(f"Error updating market price: {e}")
+    finally:
+        conn.close()
+
+def update_market_summary(total_market_cap, total_volume, btc_dominance, eth_dominance):
+    """Insert the latest market summary (keep latest only)."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM market_summary')  # Keep latest only
+        cursor.execute('''
+            INSERT INTO market_summary (total_market_cap, total_volume, btc_dominance, eth_dominance)
+            VALUES (?, ?, ?, ?)
+        ''', (total_market_cap, total_volume, btc_dominance, eth_dominance))
+        conn.commit()
+    except sqlite3.Error as e:
+        logger.error(f"Error updating market summary: {e}")
+    finally:
+        conn.close()
+
+# --------- Market Data Fetch Functions ---------
+def get_market_prices():
+    """Fetch the latest prices from the database."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT coin, price, change FROM market_prices')
+        prices = cursor.fetchall()
+        return {row['coin']: {"price": row['price'], "change": row['change']} for row in prices}
+    except sqlite3.Error as e:
+        logger.error(f"Error fetching market prices: {e}")
+        return {}
+    finally:
+        conn.close()
+
+def get_market_summary():
+    """Fetch the latest market summary from the database."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT total_market_cap, total_volume, btc_dominance, eth_dominance FROM market_summary ORDER BY id DESC LIMIT 1')
+        row = cursor.fetchone()
+        if row:
+            return {
+                "total_market_cap": row["total_market_cap"],
+                "total_volume": row["total_volume"],
+                "btc_dominance": row["btc_dominance"],
+                "eth_dominance": row["eth_dominance"]
+            }
+        return None
+    except sqlite3.Error as e:
+        logger.error(f"Error fetching market summary: {e}")
+        return None
     finally:
         conn.close()

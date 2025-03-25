@@ -1,10 +1,11 @@
 import asyncio
 import logging
-import sys
 import os
+import database
 from models import News
 from database import get_all_chats, log_message
-from telegram import Bot, ParseMode
+from telegram import Bot
+from telegram.constants import ParseMode  # Updated for compatibility with python-telegram-bot v20+
 from telegram.error import TelegramError
 
 # Set up logging
@@ -26,7 +27,11 @@ async def broadcast_to_all_chats():
     try:
         # Initialize the bot
         bot = Bot(token=TELEGRAM_BOT_TOKEN)
-        
+    except Exception as e:
+        print(f"❌ Failed to initialize the bot: {str(e)}")
+        return False
+    
+    try:
         # Get bot info
         bot_info = await bot.get_me()
         print(f"✓ Connected to bot: {bot_info.first_name} (@{bot_info.username})")
@@ -64,11 +69,11 @@ async def broadcast_to_all_chats():
         
         for chat in chats:
             chat_id = chat['chat_id']
-            
+        
             try:
                 print(f"Sending to: {chat['chat_title']} (ID: {chat_id})")
                 
-                # Send the message
+                # Send the message using the bot instance
                 message = await bot.send_message(
                     chat_id=chat_id,
                     text=formatted_message,
@@ -90,6 +95,7 @@ async def broadcast_to_all_chats():
                 
                 if "chat not found" in str(e).lower() or "bot was kicked" in str(e).lower():
                     print(f"  ⚠️ The bot may have been removed from this chat or the chat no longer exists.")
+                    await remove_invalid_chat(chat_id)  # Remove invalid chat
                 
                 error_count += 1
         
@@ -106,13 +112,23 @@ async def broadcast_to_all_chats():
         print(f"\n❌ Error during broadcast: {str(e)}")
         return False
 
+async def remove_invalid_chat(chat_id):
+    """
+    Remove invalid chats from the database.
+    """
+    try:
+        print(f"Removing invalid chat with ID: {chat_id}")
+        # Remove the `await` if the function is synchronous
+        database.remove_chat(chat_id)  # Ensure this function is synchronous in your database module
+        print(f"✓ Chat with ID {chat_id} removed successfully.")
+    except Exception as e:
+        print(f"❌ Failed to remove chat with ID {chat_id}: {str(e)}")
 if __name__ == "__main__":
     print("📣 Broadcast Test - أخبار الكريبتو من إنفترون داو")
     print("--------------------------------------------------")
     
     # Run the async function
-    loop = asyncio.get_event_loop()
-    success = loop.run_until_complete(broadcast_to_all_chats())
+    success = asyncio.run(broadcast_to_all_chats())
     
     if success:
         print("\n✅ Test completed successfully!")
