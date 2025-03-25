@@ -2,7 +2,8 @@ import logging
 import os
 import asyncio
 from models import News
-from telegram import Bot, ParseMode
+from telegram import Bot, Update
+from telegram.constants import ParseMode
 from config import TELEGRAM_BOT_TOKEN # Added import
 from database import get_all_chats, log_message # Added import
 from datetime import datetime # Added import

@@ -15,7 +15,8 @@
 """
 
 import logging
-from telegram import Update, ParseMode
+from telegram import Bot, Update
+from telegram.constants import ParseMode
 from telegram.ext import CommandHandler, CallbackContext
 
 logger = logging.getLogger(__name__)

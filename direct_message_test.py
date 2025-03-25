@@ -2,7 +2,8 @@ import logging
 import os
 import sys
 from models import News
-from telegram import Bot, ParseMode
+from telegram import Bot, Update
+from telegram.constants import ParseMode
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, 
