@@ -7,20 +7,21 @@ from telegram.constants import ParseMode
 from telegram import Update
 from config import WEBHOOK_SECRET
 import database
+from telegram.ext import Application
 from models import News
 from bot import broadcast_news
 from flask import Flask
+from typing import Optional
 
-logger = logging.getLogger(__name__)
 webhook_bp = Blueprint('webhook', __name__)
+logger = logging.getLogger(__name__)
 app = Flask(__name__)
-# This gets set in main.py:
-application = None
+application = None  # type: Optional[Application]
 
-def set_bot_application(app):
+def set_bot_application(app_instance):
     """Called from main.py to make the PTB Application available here."""
     global application
-    application = app
+    application = app_instance
 
 @webhook_bp.route('/', methods=['GET'])
 def index():
@@ -106,7 +107,7 @@ def news_webhook():
         logger.exception(f"Error processing /news-webhook: {e}")
         return jsonify({"error": "Unexpected error"}), 500
 
-@app.route('/telegram-webhook', methods=['POST'])
+@webhook_bp.route('/telegram-webhook', methods=['POST'])
 def telegram_webhook():
     try:
         if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != WEBHOOK_SECRET:
@@ -116,12 +117,13 @@ def telegram_webhook():
         data = request.get_json(force=True)
         update = Update.de_json(data, application.bot)
 
-        # ✅ Submit the update to the bot’s event loop (run inside the event loop)
-        future = asyncio.run_coroutine_threadsafe(application.process_update(update), application.loop)
+        # Correct usage: application.loop is available in python-telegram-bot
+        future = asyncio.run_coroutine_threadsafe(
+            application.process_update(update), application.loop
+        )
 
-        # Wait briefly (non-blocking) to ensure it’s handed off
         try:
-            future.result(timeout=1)  # Optional: handle immediate exceptions
+            future.result(timeout=1)
         except Exception as e:
             logging.warning(f"⚠️ Telegram update handling raised: {e}")
 
