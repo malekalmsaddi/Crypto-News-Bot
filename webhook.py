@@ -11,6 +11,7 @@ from telegram.ext import Application
 from models import News
 from bot import broadcast_news
 from typing import Optional
+from main import shutting_down  # ✅ Import shutting_down flag
 
 webhook_bp = Blueprint('webhook', __name__)
 logger = logging.getLogger(__name__)
@@ -107,6 +108,10 @@ def news_webhook():
 
 @webhook_bp.route('/telegram-webhook', methods=['POST'])
 def telegram_webhook():
+    if shutting_down:
+        logger.warning("🛑 Ignoring Telegram update during shutdown")
+        return jsonify({"error": "Bot is shutting down"}), 503
+
     try:
         if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != WEBHOOK_SECRET:
             logging.warning("⚠️ Invalid secret token in webhook request")
