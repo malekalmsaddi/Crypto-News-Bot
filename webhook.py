@@ -98,7 +98,7 @@ def news_webhook():
                 return 0, 1
 
         # Execute safely
-        safe_async_exec(process_broadcast())
+        asyncio.create_task(safe_async_exec(process_broadcast()))
 
         return jsonify({
             "status": "success",
@@ -133,7 +133,7 @@ def telegram_webhook():
     try:
         update = Update.de_json(request.get_json(force=True), app.bot)
         logger.info("Received Telegram update: %s", request.get_data(as_text=True))
-        safe_async_exec(app.process_update(update))
+        asyncio.create_task(safe_async_exec(app.process_update(update)))
         return "OK", 200
     except Exception as e:
         log_error(e, "telegram-webhook")

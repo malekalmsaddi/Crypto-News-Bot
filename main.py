@@ -36,7 +36,7 @@ shutdown_lock = asyncio.Lock()
 from threading import Event as ThreadingEvent
 
 shutdown_event = ThreadingEvent()
-shutdown_async_event = asyncio.Event()# ========== Flask Setup ==========
+shutdown_async_event = None  # Will be created inside the same event loop
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "SomeRandomSecret")
 app.register_blueprint(webhook_bp)
@@ -171,7 +171,10 @@ async def main():
     flask_thread.start()
 
     try:
+        global shutdown_async_event
+        shutdown_async_event = asyncio.Event()  # Created inside the running loop
         await run_bot(shutdown_event)
+
     except (asyncio.CancelledError, KeyboardInterrupt):
         logging.info("🛑 Shutdown triggered by interrupt")
         await shutdown(shutdown_event)
