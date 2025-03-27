@@ -1,14 +1,13 @@
 import os
 from typing import Optional, Dict, Any, List, Tuple
-
+import logging
 from flask import Flask, request, jsonify, render_template
 from telegram import Bot, Update
 from telegram.ext import Application, ApplicationBuilder
 from telegram.constants import ParseMode
 from pycoingecko import CoinGeckoAPI
 
-from loggin_config import logger
-from shared_functions import log_error
+from logging_config import logger
 
 # Environment variables (fail-fast validation)
 TELEGRAM_BOT_TOKEN = os.environ['TELEGRAM_BOT_TOKEN']

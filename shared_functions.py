@@ -1,12 +1,12 @@
+import asyncio
+from flask import request
+from telegram.constants import ParseMode
+from typing import Tuple
 import logging
-
+from logging_config import logger
 from shared_apps import get_telegram_app, is_shutting_down
-from shared_imports import WEBHOOK_SECRET
-from shared_imports import (
-    logger, asyncio, request,
-    WEBHOOK_SECRET, Tuple, PriceData, 
-    ChatData, ParseMode
-)
+from shared_imports import WEBHOOK_SECRET, PriceData, ChatData
+
 
 # ---- Async Utilities ----
 async def safe_async_exec(coroutine) -> None:
