@@ -133,7 +133,6 @@ async def run_bot(shutdown_event):
     # 5. Actually initialize & start the bot in the background
     await application.initialize()
     await application.start()
-    application.create_task(application())
     await asyncio.sleep(2)
 
     # 6. Set the webhook once, so Telegram pushes updates to /telegram-webhook
