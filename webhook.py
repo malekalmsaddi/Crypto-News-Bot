@@ -119,6 +119,7 @@ def telegram_webhook():
 
         async def handle_update():
             await application.process_update(update)
+            await asyncio.sleep(0.1)
 
         # Just get the loop safely
         loop = asyncio.get_event_loop()
