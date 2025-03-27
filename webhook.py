@@ -119,9 +119,10 @@ def telegram_webhook():
 
         # Correct usage: application.loop is available in python-telegram-bot
         future = asyncio.run_coroutine_threadsafe(
-            application.process_update(update), application.loop
+            application.process_update(update),
+            asyncio.get_event_loop()
         )
-
+        
         try:
             future.result(timeout=1)
         except Exception as e:
