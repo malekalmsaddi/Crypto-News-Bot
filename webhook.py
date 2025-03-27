@@ -125,12 +125,16 @@ def telegram_webhook():
         return jsonify({"error": reason}), 403
 
     try:
-        # Process update
         app = get_telegram_app()
+    except RuntimeError:
+        logger.warning("Telegram Application not yet initialized.")
+        return jsonify({"error": "Bot not ready"}), 503
+
+    try:
         update = Update.de_json(request.get_json(force=True), app.bot)
+        logger.info("Received Telegram update: %s", request.get_data(as_text=True))
         safe_async_exec(app.process_update(update))
         return "OK", 200
-
     except Exception as e:
         log_error(e, "telegram-webhook")
         return "Error", 500
