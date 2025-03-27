@@ -33,7 +33,6 @@ logging.getLogger().addFilter(SensitiveFilter())
 application = None        # The telegram.ext.Application
 flask_thread = None
 shutdown_lock = asyncio.Lock()
-shutdown_event = asyncio.Event()  # ✅ Event to coordinate clean shutdown
 # ========== Flask Setup ==========
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "SomeRandomSecret")
@@ -67,7 +66,7 @@ class FlaskServerThread(threading.Thread):
         self.server.server_close()
 
 # ========== Shutdown Logic ==========
-async def shutdown():
+async def shutdown(shutdown_event):
     """
     Perform a clean shutdown of Flask + the telegram bot + background tasks.
     """
@@ -103,7 +102,7 @@ async def shutdown():
         await asyncio.gather(*tasks, return_exceptions=True)
 
 # ========== Bot Initialization & Main Logic ==========
-async def run_bot():
+async def run_bot(shutdown_event):
     """
     Starts the bot *without* automatic polling or integrated webhook server.
     We rely on our own Flask route to deliver updates to application.process_update().
@@ -162,6 +161,8 @@ async def main():
     Main entrypoint: start Flask in one thread, then run the bot in the current event loop.
     """
     global flask_thread
+    shutdown_event = asyncio.Event()
+
 
     # Start Flask server in a separate thread so it can handle webhooks & other routes
     flask_thread = FlaskServerThread(app)
@@ -176,22 +177,18 @@ async def main():
 
 # ========== Signal Handling ==========
 def handle_signal(signum, frame):
-    """
-    Called by Python’s signal module on SIGINT/SIGTERM to do graceful shutdown.
-    """
     logging.info(f"🛑 Received signal {signum}, initiating shutdown...")
     try:
         loop = asyncio.get_running_loop()
-        loop.create_task(shutdown())
+        # NOTE: shutdown_event is no longer global; rely on signal-triggered interruption.
+        pass
     except RuntimeError:
         logging.warning("⚠️ No running event loop, skipping async shutdown")
 
 if __name__ == '__main__':
-    # Register signal handlers so we can gracefully stop on Ctrl+C or kill
     signal.signal(signal.SIGINT, handle_signal)
     signal.signal(signal.SIGTERM, handle_signal)
 
-    # Finally, run everything
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
