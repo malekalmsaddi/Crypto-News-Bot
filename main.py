@@ -6,8 +6,6 @@ import threading
 import signal
 from flask import Flask, jsonify
 from werkzeug.serving import make_server
-
-# Import your config values
 from config import HOST, PORT, DEBUG, TELEGRAM_BOT_TOKEN, WEBHOOK_URL, WEBHOOK_SECRET
 import database
 from webhook import webhook_bp, set_bot_application
@@ -124,7 +122,6 @@ async def run_bot():
     setup_handlers(application)
 
     # 4. Optionally schedule background jobs
-    #    e.g. a price update job every 20,000 seconds:
     application.job_queue.run_repeating(send_hourly_price_update, interval=20000, first=3600)
 
     # 5. Actually initialize & start the bot in the background
@@ -132,11 +129,18 @@ async def run_bot():
     await application.start()
 
     # 6. Set the webhook once, so Telegram pushes updates to /telegram-webhook
-    if WEBHOOK_URL:
-        logging.info(f"🌐 Setting Telegram webhook to {WEBHOOK_URL}")
-        await application.bot.set_webhook(url=WEBHOOK_URL)
+    fallback_url = "https://cryptonewsbot.fly.dev/telegram-webhook"
+    webhook_url = os.getenv("WEBHOOK_URL", fallback_url)
+    if webhook_url == fallback_url:
+        logging.warning(f"⚠️ WEBHOOK_URL not set. Using default Fly.io webhook: {webhook_url}")
     else:
-        logging.warning("⚠️ WEBHOOK_URL not set; no updates will be received via webhook.")
+        logging.info(f"✅ Webhook URL loaded: {webhook_url}")
+
+    if webhook_url:
+        logging.info(f"🌐 Setting Telegram webhook to {webhook_url}")
+        await application.bot.set_webhook(url=webhook_url)
+    else:
+        logging.warning("⚠️ WEBHOOK_URL still missing. Webhook not set!")
 
     # 7. Keep this task alive until we’re shutting down
     bot_username = await get_bot_username()

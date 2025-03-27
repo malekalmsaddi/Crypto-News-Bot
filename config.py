@@ -29,7 +29,6 @@ if not TELEGRAM_BOT_TOKEN:
 # 🌐 Webhook Configuration
 # =========================
 # Default webhook fallback for Fly.io (change as needed)
-
 DEFAULT_FLY_WEBHOOK = "https://cryptonewsbot.fly.dev/telegram-webhook"
 
 # ✅ Webhook URL: load from env or fallback to Fly.io URL
@@ -43,19 +42,22 @@ else:
 WEBHOOK_SECRET = os.getenv('WEBHOOK_SECRET')
 if not WEBHOOK_SECRET:
     logging.critical("❌ WEBHOOK_SECRET is missing! Required for secure webhook communication.")
-    raise RuntimeError("WEBHOOK_SECRET is required in .env o"
-    "
+    raise RuntimeError("WEBHOOK_SECRET is required in .env o")
 # =========================
 # ⚙️ Flask Configuration
+# =========================
 # =========================
 PORT = int(os.getenv('PORT', 8080))  # 8080 for Fly.io
 HOST = os.getenv('HOST', '0.0.0.0')
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
+# Log Flask configuration
 logging.info(f"✅ Flask configuration - HOST: {HOST}, PORT: {PORT}, DEBUG: {DEBUG}")
 
 # =========================
 # 🗄 Database Configuration
 # =========================
 DATABASE_FILE = os.getenv('DATABASE_FILE', 'bot_database.db')
+
+# Log database configuration
 logging.info(f"✅ Database file: {DATABASE_FILE}")
