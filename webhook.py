@@ -137,15 +137,17 @@ def telegram_webhook():
         # Async update runner
         async def run_update():
             try:
+                logger.info("⚙️ Processing incoming Telegram update...")
                 await safe_async_exec(app.process_update(update))
+                logger.info("✅ Update processed successfully.")
             except Exception as e:
                 log_error(e, "telegram-handler")
 
-        try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(run_update())
+        else:
             asyncio.run(run_update())
-        except RuntimeError:
-            # Already inside a running loop, fallback
-            asyncio.ensure_future(run_update())
 
         return "OK", 200
 
