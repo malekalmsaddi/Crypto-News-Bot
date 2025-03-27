@@ -138,7 +138,7 @@ def telegram_webhook():
         async def run_update():
             try:
                 logger.info("⚙️ Processing incoming Telegram update...")
-                await safe_async_exec(app.process_update(update))
+                app.update_queue.put_nowait(update)
                 logger.info("✅ Update processed successfully.")
             except Exception as e:
                 log_error(e, "telegram-handler")
