@@ -143,11 +143,14 @@ def telegram_webhook():
             except Exception as e:
                 log_error(e, "telegram-handler")
 
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            loop.create_task(run_update())
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(run_update())
         else:
-            asyncio.run(run_update())
+            loop.create_task(run_update())
 
         return "OK", 200
 
