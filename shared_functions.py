@@ -20,8 +20,8 @@ async def safe_async_exec(coroutine) -> None:
         logger.error(f"Async exec failed: {e}")
         await coroutine
 
-def log_error(error: Exception):
-    logging.error(f"🚨 {type(error).__name__}: {error}")
+def log_error(error: Exception, context: str = ""):
+    logging.error(f"🚨 {context} - {type(error).__name__}: {error}")
 
 
 def validate_webhook() -> Tuple[bool, str]:

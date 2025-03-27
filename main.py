@@ -121,7 +121,8 @@ async def run_bot(shutdown_event):
     application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
     # 2. Make the bot available to the webhook blueprint
-    set_bot_application(application)
+    from shared_apps import set_telegram_app
+    set_telegram_app(application)
 
     # 3. Register all handlers
     setup_handlers(application)
