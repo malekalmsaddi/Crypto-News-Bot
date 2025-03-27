@@ -8,9 +8,12 @@ from flask import Flask, jsonify
 from werkzeug.serving import make_server
 from config import HOST, PORT, DEBUG, TELEGRAM_BOT_TOKEN, WEBHOOK_URL, WEBHOOK_SECRET
 import database
-from webhook import webhook_bp, set_bot_application
+import webhook
+webhook_bp = webhook.webhook_bp
+set_bot_application = webhook.set_bot_application
 from market import start_market_fetcher, stop_market_fetcher
 from telegram.ext import ApplicationBuilder
+import shared
 from bot import get_bot_username, setup_handlers, send_hourly_price_update
 
 # ========== Logging Setup ==========
@@ -29,10 +32,8 @@ logging.getLogger().addFilter(SensitiveFilter())
 # ========== Globals ==========
 application = None        # The telegram.ext.Application
 flask_thread = None
-shutting_down = False
 shutdown_lock = asyncio.Lock()
 shutdown_event = asyncio.Event()  # ✅ Event to coordinate clean shutdown
-
 # ========== Flask Setup ==========
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "SomeRandomSecret")
@@ -41,7 +42,7 @@ database.init_db()
 
 @app.before_request
 def reject_if_shutting_down():
-    if shutting_down:
+    if shared.shutting_down:
         return jsonify({"error": "Service is shutting down"}), 503
 
 class FlaskServerThread(threading.Thread):
@@ -72,9 +73,9 @@ async def shutdown():
     """
     global shutting_down
     async with shutdown_lock:
-        if shutting_down:
+        if shared.shutting_down:
             return
-        shutting_down = True
+        shared.shutting_downshutting_down = True
         logging.info("🛑 Initiating clean shutdown...")
 
         shutdown_event.set()  # ✅ Wake up tasks waiting for shutdown

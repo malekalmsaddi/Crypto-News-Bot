@@ -11,12 +11,11 @@ from telegram.ext import Application
 from models import News
 from bot import broadcast_news
 from typing import Optional
-from main import shutting_down  # ✅ Import shutting_down flag
+from shared import shutting_down
 
 webhook_bp = Blueprint('webhook', __name__)
 logger = logging.getLogger(__name__)
 application = None  # type: Optional[Application]
-
 def set_bot_application(app_instance):
     """Called from main.py to make the PTB Application available here."""
     global application
