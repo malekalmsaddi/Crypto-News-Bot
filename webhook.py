@@ -1,8 +1,14 @@
-from shared_imports import (
-    Flask, request, jsonify, render_template,
-    logger, ParseMode, Update, asyncio,
-    WEBHOOK_SECRET, log_error
-)
+
+
+import asyncio
+from flask import Flask, request, jsonify, render_template
+from telegram import Update
+from telegram.constants import ParseMode
+
+from logging_config import logger
+from shared_functions import log_error
+from shared_imports import WEBHOOK_SECRET
+
 from shared_apps import (
     get_telegram_app, 
     is_shutting_down,
