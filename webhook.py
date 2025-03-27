@@ -120,8 +120,8 @@ def telegram_webhook():
         async def handle_update():
             await application.process_update(update)
 
-        # Always schedule on the application's loop
-        loop = application._loop  # Use the actual loop the bot was initialized on
+        # ✅ Use the bot’s loop instead of non-existent _loop
+        loop = application.bot.loop
         if loop.is_running():
             loop.call_soon_threadsafe(asyncio.create_task, handle_update())
         else:
