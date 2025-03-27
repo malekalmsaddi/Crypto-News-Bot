@@ -131,17 +131,16 @@ async def run_bot():
     # 6. Set the webhook once, so Telegram pushes updates to /telegram-webhook
     fallback_url = "https://cryptonewsbot.fly.dev/telegram-webhook"
     webhook_url = os.getenv("WEBHOOK_URL", fallback_url)
-    if webhook_url == fallback_url:
-        logging.warning(f"⚠️ WEBHOOK_URL not set. Using default Fly.io webhook: {webhook_url}")
-    else:
-        logging.info(f"✅ Webhook URL loaded: {webhook_url}")
+    if WEBHOOK_URL:
+        logging.info(f"🌐 Setting Telegram webhook to {WEBHOOK_URL}")
+        fallback_url = "https://cryptonewsbot.fly.dev/telegram-webhook"
+        webhook_url = os.getenv("WEBHOOK_URL", fallback_url)
 
-    if webhook_url:
-        logging.info(f"🌐 Setting Telegram webhook to {webhook_url}")
-        await application.bot.set_webhook(url=webhook_url)
-    else:
-        logging.warning("⚠️ WEBHOOK_URL still missing. Webhook not set!")
-
+        try:
+            await application.bot.set_webhook(url=webhook_url)
+            logging.info("✅ Telegram webhook set successfully.")
+        except Exception as e:
+            logging.exception(f"❌ Failed to set webhook: {e}")
     # 7. Keep this task alive until we’re shutting down
     bot_username = await get_bot_username()
     logging.info(f"✅ Bot username set: @{bot_username}")
