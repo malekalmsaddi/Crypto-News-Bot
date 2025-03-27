@@ -3,7 +3,7 @@ from threading import Lock
 import asyncio
 from typing import Optional, Dict, Any
 
-from flask import Flask
+from flask import Flask, Blueprint
 from telegram.ext import Application
 from logging_config import logger
 
@@ -12,6 +12,9 @@ from shared_imports import SESSION_SECRET
 # ---- Shared Instances ----
 flask_app = Flask(__name__)
 flask_app.secret_key = SESSION_SECRET
+
+# Define an actual Blueprint for webhook routes
+webhook_bp = Blueprint("webhook", __name__)
 
 _telegram_app = None
 _telegram_app_lock = Lock()
@@ -39,3 +42,4 @@ async def set_shutting_down(state: bool) -> None:
 
 def is_shutting_down() -> bool:
     return _shutting_down
+__all__ = ["flask_app", "webhook_bp", "set_telegram_app", "get_telegram_app", "set_shutting_down", "is_shutting_down"]

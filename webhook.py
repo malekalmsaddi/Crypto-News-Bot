@@ -10,7 +10,7 @@ from shared_imports import WEBHOOK_SECRET
 from shared_apps import (
     get_telegram_app, 
     is_shutting_down,
-    flask_app as webhook_bp  # Reuse the shared Flask app
+    webhook_bp  # This is the Blueprint object
 )
 from shared_functions import (
     safe_async_exec,
