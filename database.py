@@ -12,7 +12,7 @@ def get_db_connection():
         return conn
     except sqlite3.Error as e:
         logger.error(f"Database connection error: {e}")
-        raise
+        raise RuntimeError("Unable to connect to the database. Please check the database configuration.")
 
 def init_db():
     """Initialize the database by creating tables if they don't exist."""
@@ -79,7 +79,7 @@ def init_db():
         logger.info("Database initialized successfully")
     except sqlite3.Error as e:
         logger.error(f"Database initialization error: {e}")
-        raise
+        raise RuntimeError("Failed to initialize the database. Please check the logs for more details.")
     finally:
         conn.close()
 
@@ -98,7 +98,7 @@ def add_chat(chat_id, chat_title, chat_type):
         return True
     except sqlite3.Error as e:
         logger.error(f"Error adding chat: {e}")
-        return False
+        raise RuntimeError("Unable to add the chat to the database. Please try again later.")
     finally:
         conn.close()
 
@@ -146,7 +146,7 @@ def log_webhook(news_id, content):
         return True
     except sqlite3.Error as e:
         logger.error(f"Error logging webhook: {e}")
-        return False
+        raise RuntimeError("Failed to log webhook data. Please try again later.")
     finally:
         conn.close()
 
@@ -225,14 +225,15 @@ def get_market_summary():
         cursor = conn.cursor()
         cursor.execute('SELECT total_market_cap, total_volume, btc_dominance, eth_dominance FROM market_summary ORDER BY id DESC LIMIT 1')
         row = cursor.fetchone()
-        if row:
-            return {
-                "total_market_cap": row["total_market_cap"],
-                "total_volume": row["total_volume"],
-                "btc_dominance": row["btc_dominance"],
-                "eth_dominance": row["eth_dominance"]
-            }
-        return None
+        if not row:
+            logger.warning("No data found in market_summary table. Ensure the table is being updated.")
+            return None
+        return {
+            "total_market_cap": row["total_market_cap"],
+            "total_volume": row["total_volume"],
+            "btc_dominance": row["btc_dominance"],
+            "eth_dominance": row["eth_dominance"]
+        }
     except sqlite3.Error as e:
         logger.error(f"Error fetching market summary: {e}")
         return None

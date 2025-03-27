@@ -1,59 +1,54 @@
+# main.py
 import os
 import logging
 import asyncio
-<<<<<<< HEAD
 import threading
 import signal
 from flask import Flask, jsonify
-from config import HOST, PORT, DEBUG
-import database
-from webhook import webhook_bp
-from bot import setup_bot, get_bot_username
 from werkzeug.serving import make_server
-from market import start_market_fetcher
 
-# ✅ Configure Flask App
-=======
-import signal
-from flask import Flask
-from hypercorn.asyncio import serve
-from hypercorn.config import Config
-from config import HOST, PORT, DEBUG
+# Import your config values
+from config import HOST, PORT, DEBUG, TELEGRAM_BOT_TOKEN, WEBHOOK_URL, WEBHOOK_SECRET
 import database
-from webhook import webhook_bp
-from bot import run_bot, get_bot_username, application
+from webhook import webhook_bp, set_bot_application
+from market import start_market_fetcher, stop_market_fetcher
+from telegram.ext import ApplicationBuilder
+from bot import get_bot_username, setup_handlers, send_hourly_price_update
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# ========== Logging Setup ==========
+class SensitiveFilter(logging.Filter):
+    def filter(self, record):
+        msg = record.getMessage()
+        # Hide your Bot token in logs
+        if "api.telegram.org/bot" in msg:
+            record.msg = msg.replace(TELEGRAM_BOT_TOKEN, '[REDACTED]')
+        return True
 
-# Configure Flask app
->>>>>>> upstream/main
-app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET")
-app.register_blueprint(webhook_bp)
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.getLogger("telegram").addFilter(SensitiveFilter())
+logging.getLogger().addFilter(SensitiveFilter())
 
-# ✅ Initialize Database
-database.init_db()
-
-<<<<<<< HEAD
-# ✅ Global State
-application = None
+# ========== Globals ==========
+application = None        # The telegram.ext.Application
 flask_thread = None
 shutting_down = False
-=======
-# Global variable for bot username
-bot_username = None
->>>>>>> upstream/main
+shutdown_lock = asyncio.Lock()
 
-# ✅ Configure Logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# ========== Flask Setup ==========
+app = Flask(__name__)
+app.secret_key = os.environ.get("SESSION_SECRET", "SomeRandomSecret")
+app.register_blueprint(webhook_bp)
+database.init_db()
 
-# ✅ Flask Server Thread Class
+@app.before_request
+def reject_if_shutting_down():
+    if shutting_down:
+        return jsonify({"error": "Service is shutting down"}), 503
+
 class FlaskServerThread(threading.Thread):
+    """
+    Runs the Flask server in a separate thread so we don’t block the main event loop.
+    """
     def __init__(self, app):
         super().__init__()
         self.server = make_server(HOST, PORT, app)
@@ -61,167 +56,131 @@ class FlaskServerThread(threading.Thread):
         self.ctx.push()
 
     def run(self):
+        import asyncio
+        asyncio.set_event_loop(asyncio.new_event_loop())  # ✅ Ensure this thread has its own event loop
         logging.info("✅ Flask server starting...")
         self.server.serve_forever()
+
 
     def shutdown(self):
         logging.info("🛑 Flask server shutting down...")
         self.server.shutdown()
+        self.server.server_close()
 
-# ✅ Optional: Block requests during shutdown
-@app.before_request
-<<<<<<< HEAD
-def reject_during_shutdown():
-    if shutting_down:
-        return jsonify({"error": "Service is shutting down"}), 503
+# ========== Shutdown Logic ==========
+async def shutdown():
+    """
+    Perform a clean shutdown of Flask + the telegram bot + background tasks.
+    """
+    global shutting_down
+    async with shutdown_lock:
+        if shutting_down:
+            return
+        shutting_down = True
+        logging.info("🛑 Initiating clean shutdown...")
 
-async def run_bot():
-    global application
-    try:
-        # ✅ Get bot username
-        bot_username = await get_bot_username()
-        app.jinja_env.globals['bot_username'] = bot_username
+        # 1. Stop Flask thread
+        if flask_thread:
+            flask_thread.shutdown()
+            flask_thread.join(timeout=5)
 
-        # ✅ Setup the bot
-        application = await setup_bot()
-
-        # ✅ Inject the bot application into webhook
-        from webhook import set_bot_application
-        set_bot_application(application)
-
-        # ✅ Start the bot lifecycle
-        await application.initialize()
-        await application.start()
-        logging.info("✅ Bot started successfully.")
-
-        # ✅ Keep the bot running
-        while True:
-            await asyncio.sleep(1)
-
-    except asyncio.CancelledError:
-        logging.info("✅ Bot task cancelled. Shutting down...")
-    except Exception as e:
-        logging.error(f"❌ Failed to initialize bot: {e}")
-        raise e
-    finally:
+        # 2. Stop the bot application
         if application:
             try:
                 await application.stop()
                 await application.shutdown()
-            except RuntimeError as e:
-                logging.warning(f"Bot shutdown warning: {e}")
+            except Exception as e:
+                logging.warning(f"⚠️ Telegram shutdown issue: {e}")
 
-async def shutdown():
-    global shutting_down
-    shutting_down = True
-    logging.info("🛑 Graceful shutdown initiated...")
+        # 3. Stop market fetcher
+        stop_market_fetcher()
 
-    if application:
-        try:
-            await application.stop()
-            await application.shutdown()
-        except RuntimeError as e:
-            logging.warning(f"Bot shutdown warning: {e}")
+        # 4. Cancel remaining tasks
+        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
 
-    if flask_thread:
-        flask_thread.shutdown()
+# ========== Bot Initialization & Main Logic ==========
+async def run_bot():
+    """
+    Starts the bot *without* automatic polling or integrated webhook server.
+    We rely on our own Flask route to deliver updates to application.process_update().
+    """
+    global application
 
-    logging.info("✅ Application shutdown complete.")
+    logging.info("⚡ Initializing bot components...")
 
-async def main():
-    global flask_thread
-
-    # ✅ Signal handling for graceful shutdown
-    loop = asyncio.get_running_loop()
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown()))
-
-    # ✅ Start market fetcher (AFTER loop is ready)
+    # Start any background tasks (market fetching, etc.)
     start_market_fetcher()
 
-    # ✅ Start Flask in a background thread
+    # 1. Build the PTB application
+    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
+
+    # 2. Make the bot available to the webhook blueprint
+    set_bot_application(application)
+
+    # 3. Register all handlers
+    setup_handlers(application)
+
+    # 4. Optionally schedule background jobs
+    #    e.g. a price update job every 20,000 seconds:
+    application.job_queue.run_repeating(send_hourly_price_update, interval=20000, first=3600)
+
+    # 5. Actually initialize & start the bot in the background
+    await application.initialize()
+    await application.start()
+
+    # 6. Set the webhook once, so Telegram pushes updates to /telegram-webhook
+    if WEBHOOK_URL:
+        logging.info(f"🌐 Setting Telegram webhook to {WEBHOOK_URL}")
+        await application.bot.set_webhook(url=WEBHOOK_URL)
+    else:
+        logging.warning("⚠️ WEBHOOK_URL not set; no updates will be received via webhook.")
+
+    # 7. Keep this task alive until we’re shutting down
+    bot_username = await get_bot_username()
+    logging.info(f"✅ Bot username set: @{bot_username}")
+
+    while not shutting_down:
+        await asyncio.sleep(1)
+
+async def main():
+    """
+    Main entrypoint: start Flask in one thread, then run the bot in the current event loop.
+    """
+    global flask_thread
+
+    # Start Flask server in a separate thread so it can handle webhooks & other routes
     flask_thread = FlaskServerThread(app)
     flask_thread.start()
 
-    # ✅ Start the bot
-    bot_task = asyncio.create_task(run_bot())
-
     try:
-        while flask_thread.is_alive():
-            await asyncio.sleep(1)
-    except asyncio.CancelledError:
-        logging.info("Main async task cancelled.")
-    finally:
-        bot_task.cancel()
-        await bot_task
+        # Start the Telegram bot in the current event loop
+        await run_bot()
+    except (asyncio.CancelledError, KeyboardInterrupt):
+        logging.info("🛑 Shutdown triggered by interrupt")
+        await shutdown()
 
-if __name__ == "__main__":
+# ========== Signal Handling ==========
+def handle_signal(signum, frame):
+    """
+    Called by Python’s signal module on SIGINT/SIGTERM to do graceful shutdown.
+    """
+    logging.info(f"🛑 Received signal {signum}, initiating shutdown...")
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(shutdown())
+    except RuntimeError:
+        logging.warning("⚠️ No running event loop, skipping async shutdown")
+
+if __name__ == '__main__':
+    # Register signal handlers so we can gracefully stop on Ctrl+C or kill
+    signal.signal(signal.SIGINT, handle_signal)
+    signal.signal(signal.SIGTERM, handle_signal)
+
+    # Finally, run everything
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logging.info("🛑 Application interrupted by user (CTRL+C). Shutting down...")
-=======
-def set_bot_info():
-    """Set bot info for templates (sync context)."""
-    app.jinja_env.globals['bot_username'] = bot_username
-
-async def start_bot():
-    """Run the Telegram bot and set the webhook."""
-    try:
-        global bot_username
-        bot_username = await get_bot_username()
-        logger.info(f"Bot username: @{bot_username}")
-
-        # ✅ Set the webhook URL dynamically (replace this with your deployed URL)
-        webhook_url = "https://cryptonewsbot.fly.dev/telegram-webhook"
-        await application.bot.set_webhook(webhook_url)
-        logger.info(f"Webhook set to: {webhook_url}")
-
-        # Run the bot (scheduler starts inside)
-        await run_bot()
-    except Exception as e:
-        logger.error(f"Failed to initialize bot: {e}", exc_info=True)
-        raise
-
-async def run_web_server():
-    """Run the Flask web server."""
-    config = Config()
-    config.bind = [f"{HOST}:{PORT}"]
-    config.debug = DEBUG
-    await serve(app, config)
-
-async def main():
-    """Main entry point."""
-    try:
-        # Run both Flask and Bot concurrently
-        await asyncio.gather(
-            run_web_server(),
-            start_bot()
-        )
-    except asyncio.CancelledError:
-        logger.info("Main task cancelled. Shutting down...")
-    finally:
-        # Properly stop the bot to avoid loop issues
-        if application:
-            await application.stop()
-            await application.shutdown()
-
-def handle_shutdown(signum, frame):
-    """Handle shutdown signals."""
-    logger.info("Received shutdown signal. Stopping bot...")
-    loop = asyncio.get_event_loop()
-    loop.create_task(application.stop())
-    loop.create_task(application.shutdown())
-
-if __name__ == '__main__':
-    import asyncio
-    from bot import run_bot
-    from webhook import webhook_bp
-
-    app = Flask(__name__)
-    app.register_blueprint(webhook_bp)
-
-    loop = asyncio.get_event_loop()
-    loop.create_task(run_bot())  # Keeps PTB running in the background
-    app.run(host='0.0.0.0', port=8080)
->>>>>>> upstream/main
+        logging.info("🛑 Keyboard interrupt received")

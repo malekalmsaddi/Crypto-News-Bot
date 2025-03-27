@@ -1,0 +1,53 @@
+# Required Libraries
+
+This document lists all the libraries required for the CryptoNewsBot project along with their purpose, version, and additional notes.
+
+## Python Libraries
+
+1. **dotenv**  
+   - **Purpose**: To load environment variables from a `.env` file.  
+   - **Version**: `1.0.1`  
+   - **Required**: Yes  
+   - **File**: `config.py`
+
+2. **logging**  
+   - **Purpose**: To configure and manage logging for debugging and error reporting.  
+   - **Version**: Built-in Python library  
+   - **Required**: Yes  
+   - **File**: `config.py`
+
+3. **os**  
+   - **Purpose**: To interact with the operating system for environment variables and file paths.  
+   - **Version**: Built-in Python library  
+   - **Required**: Yes  
+   - **File**: `config.py`
+
+4. **pathlib**  
+   - **Purpose**: To handle file system paths in an object-oriented way.  
+   - **Version**: Built-in Python library  
+   - **Required**: Yes  
+   - **File**: `config.py`
+
+5. **sqlite3**  
+   - **Purpose**: To interact with the SQLite database for storing bot data.  
+   - **Version**: Built-in Python library  
+   - **Required**: Yes  
+   - **File**: `database.py`
+
+6. **python-telegram-bot**  
+   - **Purpose**: To interact with the Telegram Bot API.  
+   - **Version**: `22.0`  
+   - **Required**: Yes  
+   - **File**: Used across the project.
+
+7. **pycoingecko**  
+   - **Purpose**: To fetch cryptocurrency market data from the CoinGecko API.  
+   - **Version**: `3.2.0`  
+   - **Required**: Yes  
+   - **File**: Used in market-related modules.
+
+8. **Flask**  
+   - **Purpose**: To create a webhook server for the bot.  
+   - **Version**: `3.1.0`  
+   - **Required**: Yes  
+   - **File**: `config.py` and webhook-related modules.

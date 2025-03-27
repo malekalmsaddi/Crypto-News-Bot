@@ -1,152 +1,120 @@
 import logging
 import asyncio
-<<<<<<< HEAD
-from telegram.ext import filters  # Correctly import filters
-from telegram import Bot, Update
+import telegram
+from telegram import Update, Bot
 from telegram.constants import ParseMode
-from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler
-from telegram.ext.filters import MessageFilter
+from telegram.ext import Application, ContextTypes, CommandHandler, MessageHandler, filters, ChatMemberHandler
 from telegram.error import TelegramError
-from config import TELEGRAM_BOT_TOKEN
-from config import WEBHOOK_URL
-=======
-from telegram import Update
-from telegram.constants import ParseMode
-from telegram.ext import (
-    ApplicationBuilder,  # Use ApplicationBuilder
-    CommandHandler,
-    MessageHandler,
-    ChatMemberHandler,
-    ContextTypes,
-    filters
-)
-from telegram.error import TelegramError
-from pycoingecko import CoinGeckoAPI
-
-from config import TELEGRAM_BOT_TOKEN
->>>>>>> upstream/main
+from config import TELEGRAM_BOT_TOKEN, WEBHOOK_URL
 import database
 from models import News
+import weakref
+from state import shutting_down, shutdown_lock
 
+BOT_LOOP = None
+
+_app_states = weakref.WeakKeyDictionary()
 logger = logging.getLogger(__name__)
-cg = CoinGeckoAPI()
+application = None
+bot = Bot(token=TELEGRAM_BOT_TOKEN)
+initializing = False
+init_lock = asyncio.Lock()
+OFFICIAL_SITE = "https://invtron.com"
+COMMUNITY_LINK = "https://t.me/+obSAMV8Mt8kzYTY0"
 
-# Initialize application globally
-application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
+async def get_bot_username():
+    """Get the bot's username."""
+    try:
+        bot_info = await bot.get_me()
+        return bot_info.username
+    except Exception as e:
+        logger.error(f"Error fetching bot username: {e}")
+        return None
 
-<<<<<<< HEAD
-async def start_command(update: Update, context: CallbackContext) -> None:
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    welcome_message = ""  # ✅ ضمان وجود المتغير لتجنب UnboundLocalError
     try:
         chat_id = update.effective_chat.id
+        chat_type = update.effective_chat.type
         logger.info(f"Received /start from chat {chat_id}")
 
+        if chat_type == "private":
+            message = (
+                "👋 مرحباً بك في <b>بوت أخبار إنفترون داو الرسمي</b> 🚀\n\n"
+                "📰 نقدم لك أحدث الأخبار والتحليلات في عالم العملات الرقمية.\n\n"
+                "📌 <b>الأوامر المتاحة:</b>\n"
+                "/start - بدء الاستخدام\n/help - المساعدة\n/about - من نحن؟\n"
+                "/price - أسعار العملات\n/market - ملخص السوق\n/feedback - أرسل اقتراحاتك\n\n"
+                f"🌐 اكتشف المزيد: <a href='{OFFICIAL_SITE}'>إنفترون داو</a>\n"
+                f"📣 انضم إلى مجتمعنا: <a href=\"{COMMUNITY_LINK}\">رابط تلجرام</a>\n\n"
+                "💎 <b>إنفترون داو</b> — \"نبحث عن الجواهر... ونموّلها\""
+            )
+        else:
+            message = (
+                "👥 أهلاً بكم! تم تفعيل <b>بوت أخبار إنفترون داو</b> في هذه المجموعة ✅\n\n"
+                "📢 سأقوم بنشر الأخبار العاجلة وتحليلات السوق هنا.\n\n"
+                "🔧 <b>الأوامر المتاحة:</b>\n"
+                "/help - المساعدة\n/about - عن إنفترون داو\n/price - أسعار العملات\n/market - ملخص السوق\n\n"
+                f"🌐 تعرف على مشروعنا: <a href=\"{OFFICIAL_SITE}\">إنفترون داو</a>\n"
+                f"📣 قناة المجتمع: <a href=\"{COMMUNITY_LINK}\">انضم الآن</a>"
+            )
+
+        # ✅ إرسال الرسالة الأساسية
+        await update.message.reply_text(message, parse_mode=ParseMode.HTML)
+
+        # ✅ رسالة ترحيب إضافية خاصة
         welcome_message = (
             "👋 أهلاً! مرحباً بك في بوت أخبار الكريبتو من إنفترون داو.\n\n"
-            "سأقوم بنشر أخبار الكريبتو تلقائياً في هذه المحادثة.\n\n"
-            "الأوامر المتاحة:\n"
-            "/start - عرض هذه الرسالة\n"
-            "/help - عرض معلومات المساعدة\n"
-            "/about - معلومات عن البوت\n"
+            "سأقوم بنشر أخبار الكريبتو تلقائياً هنا.\n\n"
+            "📌 الأوامر المتاحة:\n"
+            "/start - عرض هذه الرسالة\n/help - معلومات المساعدة\n/about - معلومات عن البوت\n"
         )
-
-        # ✅ Force completion of send_message BEFORE moving on
         sent_message = await context.bot.send_message(chat_id=chat_id, text=welcome_message)
         logger.info(f"✅ Message sent: {sent_message.message_id}")
 
-        # Optional: Add a small delay to ensure no connection drop
         await asyncio.sleep(1)
 
     except Exception as e:
         logger.error(f"Error in /start command: {e}", exc_info=True)
-    
-=======
-# Helper functions
-def format_percentage(value: float) -> str:
-    """Format percentage values with 2 decimal places."""
-    return f"{value:.2f}"
 
-async def get_bot_username() -> str:
-    """Get the bot's Telegram username."""
-    try:
-        bot_user = await application.bot.get_me()
-        return bot_user.username
-    except Exception as e:
-        logger.error(f"Failed to get bot username: {e}")
-        return None
-
-# Command handlers
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle the /start command."""
-    chat_id = update.effective_chat.id
-    chat_title = update.effective_chat.title or f"Private chat with {update.effective_user.first_name}"
-    chat_type = update.effective_chat.type
-
->>>>>>> upstream/main
-    welcome_message = (
-        "👋 أهلاً! مرحباً بك في بوت أخبار الكريبتو من إنفترون داو.\n\n"
-        "سأقوم بنشر أخبار الكريبتو تلقائياً في هذه المحادثة.\n\n"
-        "الأوامر المتاحة:\n"
-        "/start - عرض هذه الرسالة\n"
-        "/help - عرض معلومات المساعدة\n"
-        "/about - معلومات عن البوت\n"
-    )
-<<<<<<< HEAD
-    
-    chat_type = update.effective_chat.type
-=======
-
->>>>>>> upstream/main
-    if chat_type == "private":
-        welcome_message += (
-            "\nأضفني إلى مجموعة لنشر الأخبار هناك!\n"
-            "تأكد من منحي صلاحيات إرسال الرسائل."
-        )
-<<<<<<< HEAD
-    
-    # Store the chat in the database
-    chat_title = update.effective_chat.title or f"Chat {chat_id}"  # Fallback title if none
+    # ✅ تسجيل المجموعة أو الخاص في قاعدة البيانات
+    chat_title = update.effective_chat.title or f"Chat {chat_id}"
     database.add_chat(chat_id, chat_title, chat_type)
-    
-    await update.message.reply_text(welcome_message)
 
-logger.info("✅ Test message sent to chat")
-async def help_command(update: Update, context: CallbackContext) -> None:
-=======
-
-    database.add_chat(chat_id, chat_title, chat_type)
-    await update.message.reply_text(welcome_message)
+    # ✅ إرسال رسالة الترحيب النهائية بشكل آمن
+    if welcome_message:
+        await update.message.reply_text(welcome_message, parse_mode=ParseMode.HTML)
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
->>>>>>> upstream/main
-    """Handle the /help command."""
-    help_text = (
-        "📢 *مساعدة بوت أخبار الكريبتو - مقدم من إنفترون داو*\n\n"
-        "هذا البوت مصمم لنشر أخبار العملات الرقمية تلقائياً داخل مجموعات تيليجرام، مع تحديث الأسعار لحظة بلحظة.\n\n"
-        "الأوامر المتاحة:\n"
-        "/start - بدء استخدام البوت\n"
-        "/help - عرض رسالة المساعدة\n"
-        "/about - معلومات عن البوت\n"
-        "/status - التحقق من حالة البوت\n"
-        "/price - عرض أحدث أسعار العملات الرقمية\n\n"
-        "💡 *نصائح الاستخدام:*\n"
-        "• أضف البوت إلى مجموعتك ليصلك كل جديد في عالم الكريبتو\n"
-        "• استخدم /price في أي وقت لمتابعة أسعار العملات الرقمية مباشرة\n\n"
-        "🔗 *انضم إلى مجتمعنا العربي:*\n"
-        "https://t.me/+CMoM9cPlV5syNGE0\n"
-        "إنفترون داو - نبحث عن الجواهر ونموّلها"
-    )
-<<<<<<< HEAD
-    
-    await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
-
-# bot.py - Corrected Functions
-
-async def about_command(update: Update, context: CallbackContext) -> None:
-=======
-    await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
+    global shutting_down  # Add this
+    async with shutdown_lock:
+        if shutting_down:
+            logging.warning("Blocked help command during shutdown")
+            return
+    try:
+        message = (
+            f"💼 <b>مركز المساعدة - إنفترون داو</b> 💼\n\n"
+            f"🤖 هذا البوت مصمم ليمنحك تجربة احترافية لأحدث أخبار وتحليلات سوق الكريبتو.\n\n"
+            f"🔧 <b>الأوامر المتاحة:</b>\n"
+            f"/start - بدء الاستخدام\n"
+            f"/help - المساعدة\n"
+            f"/about - من نحن؟\n"
+            f"/price - أسعار العملات\n"
+            f"/market - ملخص السوق\n"
+            f"/feedback - أرسل ملاحظاتك\n\n"
+            f"🌐 <a href=\"{OFFICIAL_SITE}\">موقعنا الرسمي</a>\n"
+            f"📣 <a href=\"{COMMUNITY_LINK}\">مجتمع إنفترون داو</a>"
+        )
+        await update.message.reply_text(message, parse_mode=ParseMode.HTML)
+    except asyncio.CancelledError:
+        logging.warning("Help command cancelled during shutdown")
+    except RuntimeError as e:
+        if "Event loop is closed" in str(e):
+            logging.warning("Blocked message send during shutdown")
+        else:
+            logging.error(f"Unexpected error: {e}")
 
 async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
->>>>>>> upstream/main
     """Handle the /about command."""
     about_text = (
         "💎 *بوت أخبار الكريبتو - من تطوير وإنفاذ إنفترون داو* 💎\n\n"
@@ -169,23 +137,26 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         "لأن هذا البوت ليس مجرد أداة للنشر، بل هو جزء من منظومة إنفترون داو التي تقود مستقبل الاستثمار والتمويل اللامركزي عبر تقنيات البلوك تشين. هدفنا تعزيز الشفافية، تمكين المجتمعات، ونشر المعرفة المالية الدقيقة والمحدثة.\n\n"
         "📱 هذا البوت مقدم حصرياً من: *إنفترون داو* \"نبحث عن الجواهر... ونموّلها\""
     )
-<<<<<<< HEAD
     await update.message.reply_text(about_text, parse_mode=ParseMode.MARKDOWN)  # Added await
 
-async def status_command(update: Update, context: CallbackContext) -> None:
-    """Handle the /status command to check if the bot is working."""
-    await update.message.reply_text("✅ بوت أخبار الكريبتو يعمل بنجاح!")  # Added await
+async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message = (
+        "✅ <b>البوت يعمل بكفاءة وجاهزية تامة</b>.\n\n"
+        "💎 معك دائماً لأحدث أخبار وأسعار سوق الكريبتو.\n"
+        "🌐 <a href=\"{OFFICIAL_SITE}\">إنفترون داو</a>"
+    )
+    await update.message.reply_text(message, parse_mode=ParseMode.HTML)
 
-async def price_command(update: Update, context: CallbackContext) -> None:
+async def price_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle the /price command to show cryptocurrency prices."""
+    response_sent = False
     try:
-        # Fetch the latest prices from the database
         prices = database.get_market_prices()
         if not prices:
             await update.message.reply_text("⚠️ عذراً، لا توجد بيانات أسعار متاحة حالياً.")
+            response_sent = True
             return
 
-        # Build the price message
         price_message = "💰 *أسعار العملات الرقمية الآن:*\n\n"
         for coin, data in prices.items():
             change_emoji = "🟢" if data["change"] > 0 else "🔴"
@@ -198,34 +169,32 @@ async def price_command(update: Update, context: CallbackContext) -> None:
 
         price_message += "⚠️ *ملاحظة*: هذه الأسعار تقريبية لأغراض العرض فقط."
 
-        # Send the price message
         await update.message.reply_text(price_message, parse_mode=ParseMode.MARKDOWN)
+        response_sent = True
 
     except Exception as e:
-        logger.error(f"Failed to fetch prices: {e}")
-        # Ensure only one response is sent
-        if not asyncio.get_event_loop().is_closed():
+        logger.error(f"Failed to fetch prices: {e}", exc_info=True)
+        if not response_sent and not asyncio.get_running_loop().is_closed():
             await update.message.reply_text("⚠️ عذراً، حدث خطأ أثناء جلب الأسعار.")
             
-async def market_command(update: Update, context: CallbackContext) -> None:
+async def market_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle the /market command to show cryptocurrency market information."""
+    response_sent = False  # Flag to track if a response has been sent
     try:
-        # Fetch the latest market summary from the database
         market_data = database.get_market_summary()
         if not market_data:
-            await update.message.reply_text("⚠️ عذراً، لا توجد بيانات سوق متاحة حالياً.")
+            logger.warning("Market summary data is empty. Ensure the database is being updated correctly.")
+            await update.message.reply_text("⚠️ عذراً، لا توجد بيانات سوق متاحة حالياً. يرجى المحاولة لاحقاً.")
+            response_sent = True
             return
 
-        # Extract and format market data
-        total_market_cap = market_data.get('total_market_cap', 0) / 1e12  # Convert to trillions
-        total_volume = market_data.get('total_volume', 0) / 1e9            # Convert to billions
+        # Format market data
+        total_market_cap = market_data.get('total_market_cap', 0) / 1e12  # Trillions
+        total_volume = market_data.get('total_volume', 0) / 1e9            # Billions
         btc_dominance = market_data.get('btc_dominance', 0)
         eth_dominance = market_data.get('eth_dominance', 0)
-
-        # Determine market sentiment
         sentiment = '📈 *صاعد*' if total_market_cap > 2.5 else '📉 *هابط*'
 
-        # Build the market information message
         market_info = (
             "📊 *حالة سوق الكريبتو*\n\n"
             f"💰 *القيمة السوقية الإجمالية:*\n   `${total_market_cap:.2f} تريليون`\n\n"
@@ -236,105 +205,122 @@ async def market_command(update: Update, context: CallbackContext) -> None:
             "⚠️ *ملاحظة*: البيانات محدثة من قاعدة البيانات ويتم تحديثها كل دقيقة."
         )
 
-        # Send the market information message
         await update.message.reply_text(market_info, parse_mode=ParseMode.MARKDOWN)
+        response_sent = True
 
     except Exception as e:
-        logger.error(f"Failed to fetch market summary: {e}")
-        # Ensure only one response is sent
-        if not asyncio.get_event_loop().is_closed():
-            await update.message.reply_text("⚠️ عذراً، حدث خطأ أثناء جلب بيانات السوق.")
+        logger.error(f"Failed to fetch market summary: {e}", exc_info=True)
+        if not response_sent and not asyncio.get_running_loop().is_closed():
+            await update.message.reply_text("⚠️ عذراً، حدث خطأ أثناء جلب بيانات السوق. يرجى المحاولة لاحقاً.")
 
-async def feedback_command(update: Update, context: CallbackContext) -> None:
-    """Handle the /feedback command for receiving user feedback."""
+async def feedback_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if context.args:
         feedback_message = ' '.join(context.args)
         user = update.effective_user
-        chat = update.effective_chat
-        logger.info(f"Feedback received from {user.id} ({user.username}): {feedback_message}")
-        await update.message.reply_text("👍 شكراً لك على ملاحظاتك! تم استلامها وسيتم النظر فيها.")  # Added await
+        logger.info(f"📩 Feedback from {user.id} (@{user.username}): {feedback_message}")
+        await update.message.reply_text("👍 شكراً لك على ملاحظاتك! تم استلامها وسيتم النظر فيها.")
     else:
         instructions = (
-            "🔄 *إرسال ملاحظات أو اقتراحات*\n\n"
-            "لإرسال ملاحظاتك، استخدم الأمر على الشكل التالي:\n\n"
-            "`/feedback أحب الأخبار التي يوفرها البوت، لكن أتمنى أن تكون هناك تنبيهات للأسعار`\n\n"
-            "نحن نقدر ملاحظاتك ونسعى لتحسين البوت باستمرار!"
+            "🔄 <b>إرسال ملاحظاتك أو اقتراحاتك:</b>\n\n"
+            "لإرسال ملاحظاتك، استخدم الأمر بهذا الشكل:\n"
+            "<code>/feedback أحب الأخبار التي يوفرها البوت، وأقترح إضافة تنبيهات للأسعار</code>\n\n"
+            "🛠 نرحب بجميع ملاحظاتكم لتحسين خدماتنا."
         )
-        await update.message.reply_text(instructions, parse_mode=ParseMode.MARKDOWN)  # Added await
+        await update.message.reply_text(instructions, parse_mode=ParseMode.HTML)
 
-async def handle_group_migration(update: Update, context: CallbackContext) -> None:
-    """Handle migration to a supergroup."""
-=======
-    await update.message.reply_text(about_text, parse_mode=ParseMode.MARKDOWN)
-
-async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle the /status command."""
-    await update.message.reply_text("✅ بوت أخبار الكريبتو يعمل بنجاح!")
-
-async def price_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle the /price command."""
-    prices = await get_crypto_prices()
-    if not prices:
-        await update.message.reply_text("⚠️ عذراً، حدث خطأ أثناء جلب الأسعار. الرجاء المحاولة لاحقاً.")
-        return
-
-    price_message = "💰 *أسعار العملات الرقمية الآن:*\n\n"
-    for coin, data in prices.items():
-        change_emoji = "🟢" if data["change"] > 0 else "🔴"
-        change_sign = "+" if data["change"] > 0 else ""
-        price_message += f"{coin}: ${data['price']:,.2f} {change_emoji} {change_sign}{format_percentage(data['change'])}%\n"
-
-    price_message += "\n⚠️ *ملاحظة*: هذه الأسعار تقريبية لأغراض العرض فقط."
-    await update.message.reply_text(price_message, parse_mode=ParseMode.MARKDOWN)
-
-async def get_crypto_prices():
-    """Fetch cryptocurrency prices from CoinGecko."""
+# ✅ Your handle_text remains clean and simple
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        coins = ["bitcoin", "ethereum", "solana", "binancecoin", "cardano"]
-        prices = {}
-        for coin in coins:
-            data = cg.get_coin_market_chart_by_id(coin, vs_currency="usd", days="1")
-            current_price = data["prices"][-1][1]
-            previous_price = data["prices"][0][1]
-            change = ((current_price - previous_price) / previous_price) * 100
-            prices[coin.capitalize()] = {"price": current_price, "change": change}
-        return prices
-    except Exception as e:
-        logger.error(f"Failed to fetch crypto prices: {e}")
-        return None
+        chat_type = update.message.chat.type
+        if chat_type in ["group", "supergroup"]:
+            if not update.message.text.startswith('/'):
+                return
 
-# Group management handlers
+        await update.message.reply_text("🚀 شكراً لرسالتك! إذا كنت بحاجة إلى مساعدة، استخدم /help.")
+    except Exception as e:
+        logger.error(f"Failed to handle text message: {e}")
+
+async def overview_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle the /overview command to send a market update to the user who triggered it."""
+    try:
+        # Fetch market data
+        prices = database.get_market_prices()
+        market_data = database.get_market_summary()
+
+        if not prices or not market_data:
+            await update.message.reply_text("⚠️ لا توجد بيانات متاحة حالياً. يرجى المحاولة لاحقاً.")
+            return
+
+        # Build the price section
+        price_message = "💰 *تحديث حالات سوق الكريبتو:*\n\n"
+        for coin, data in prices.items():
+            change_emoji = "🟢" if data["change"] > 0 else "🔴"
+            change_sign = "+" if data["change"] > 0 else ""
+            price_message += (
+                f"{coin}: ${data['price']:,.2f} {change_emoji} {change_sign}{data['change']:.2f}%\n"
+            )
+
+        # Extract market data and sentiment
+        total_market_cap = market_data.get('total_market_cap', 0) / 1e12  # Trillions
+        total_volume = market_data.get('total_volume', 0) / 1e9            # Billions
+        btc_dominance = market_data.get('btc_dominance', 0)
+        eth_dominance = market_data.get('eth_dominance', 0)
+        sentiment = '📈 *صاعد*' if total_market_cap > 2.5 else '📉 *هابط*'
+
+        # Append market summary
+        price_message += (
+            "\n📊 *ملخص السوق:*\n"
+            f"💰 *القيمة السوقية:* ${total_market_cap:.2f} تريليون\n"
+            f"📈 *حجم التداول (24 ساعة):* ${total_volume:.1f} مليار\n"
+            f"🔶 *هيمنة بيتكوين:* {btc_dominance:.1f}%\n"
+            f"🔷 *هيمنة إيثريوم:* {eth_dominance:.1f}%\n"
+            f"📝 *اتجاه السوق:* {sentiment}\n"
+        )
+
+        price_message += "\n⚠️ *ملاحظة*: الأسعار والبيانات تقريبية لأغراض العرض فقط."
+
+        # Send the message to the user who triggered the command
+        await update.message.reply_text(price_message, parse_mode=ParseMode.MARKDOWN)
+
+    except Exception as e:
+        logger.error(f"Error in /overview command: {e}", exc_info=True)
+        await update.message.reply_text("⚠️ حدث خطأ أثناء إرسال التحديث.")
+
 async def handle_group_migration(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle group migration to supergroup."""
->>>>>>> upstream/main
+    """Handle migration to a supergroup."""
     if update.message and update.message.migrate_from_chat_id:
         old_chat_id = update.message.migrate_from_chat_id
         new_chat_id = update.effective_chat.id
+        
+        # Remove old chat and add the new one
         database.remove_chat(old_chat_id)
         database.add_chat(new_chat_id, update.effective_chat.title, update.effective_chat.type)
+        
         logger.info(f"Chat migrated from {old_chat_id} to {new_chat_id}")
 
-<<<<<<< HEAD
-async def chat_member_updated(update: Update, context: CallbackContext) -> None:
-    """Track when the bot is added to or removed from a chat."""
-=======
 async def chat_member_updated(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Track bot membership changes."""
->>>>>>> upstream/main
+    """Track when the bot is added to or removed from a chat."""
     result = update.my_chat_member
+    
     if not result:
         return
-
+    
     chat_id = result.chat.id
-    chat_title = result.chat.title or f"Chat {chat_id}"
+    chat_title = result.chat.title or f"Chat {chat_id}"  # Fallback title if none
     chat_type = result.chat.type
-
-    logger.info(f"Bot membership update in {chat_title} ({chat_id}): {result.old_chat_member.status} -> {result.new_chat_member.status}")
-
+    
+    # Log the update details for debugging
+    logger.info(f"Bot membership update in {chat_title} ({chat_id}): "
+                f"{result.old_chat_member.status} -> {result.new_chat_member.status}")
+    
+    # Bot was added to a group
     if (result.old_chat_member.status in ['left', 'kicked'] and 
-        result.new_chat_member.status in ['member', 'administrator']):
+            result.new_chat_member.status in ['member', 'administrator']):
+        # Add chat to database
         database.add_chat(chat_id, chat_title, chat_type)
         logger.info(f"Bot was added to {chat_title} ({chat_id})")
+        
+        # Send welcome message if it's a group or supergroup
         if chat_type in ['group', 'supergroup']:
             try:
                 welcome_message = (
@@ -345,79 +331,187 @@ async def chat_member_updated(update: Update, context: ContextTypes.DEFAULT_TYPE
                     "/about - معلومات عن البوت\n"
                     "/price - عرض أسعار العملات الرقمية\n"
                 )
-                await context.bot.send_message(chat_id=chat_id, text=welcome_message)
+                context.bot.send_message(chat_id=chat_id, text=welcome_message)
             except Exception as e:
                 logger.error(f"Failed to send welcome message to {chat_id}: {e}")
-
+        
     elif (result.old_chat_member.status in ['member', 'administrator'] and 
-          result.new_chat_member.status in ['left', 'kicked']):
+            result.new_chat_member.status in ['left', 'kicked']):
         database.remove_chat(chat_id)
         logger.info(f"Bot was removed from {chat_title} ({chat_id})")
+    elif (result.old_chat_member.status != result.new_chat_member.status and
+          result.new_chat_member.status in ['member', 'administrator']):
+        database.add_chat(chat_id, chat_title, chat_type)
+        logger.info(f"Bot status updated in {chat_title} ({chat_id}) to {result.new_chat_member.status}")
 
-# Broadcast and scheduled tasks
-async def broadcast_news(news: News) -> tuple[int, int]:
-    """Broadcast news to all registered chats."""
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    global shutting_down  # Add this
+    async with shutdown_lock:
+        if shutting_down:
+            return
+                    
+    logger.error(f"Exception in handler: {context.error}", exc_info=True)
+    
+    try:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="⚠️ حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى لاحقاً."
+        )
+    except Exception as e:
+        logger.error(f"Failed to send error message: {e}")
+
+def setup_handlers(app: Application) -> None:
+    """Centralized handler configuration with proper ordering"""
+    
+    # 1. Command Handlers (Highest Priority)
+    command_handlers = [
+        CommandHandler("start", start_command),
+        CommandHandler("help", help_command),
+        CommandHandler("about", about_command),
+        CommandHandler("status", status_command),
+        CommandHandler("price", price_command),
+        CommandHandler("market", market_command),
+        CommandHandler("feedback", feedback_command),
+        CommandHandler("overview", overview_command),
+    ]
+    for handler in command_handlers:
+        app.add_handler(handler)
+
+    # 2. Message Handlers
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND,
+        handle_text
+    ))
+
+    # 3. Special Update Handlers
+    app.add_handler(MessageHandler(
+        filters.StatusUpdate.MIGRATE,
+        handle_group_migration
+    ))
+    
+    app.add_handler(ChatMemberHandler(
+        chat_member_updated, 
+        ChatMemberHandler.MY_CHAT_MEMBER
+    ))
+
+    # 4. Error Handler (Should be last)
+    app.add_error_handler(error_handler)
+
+
+async def setup_bot():
+    """Initialize the bot application with proper setup."""
+    global application, initializing
+    async with init_lock:
+        if application or initializing:
+            return
+        initializing = True
+        try:
+            # Your initialization logic here
+            application = Application.Builder().token(TELEGRAM_BOT_TOKEN).build()
+            setup_handlers(application)
+            # Add other initialization steps
+            logging.info("✅ Bot application initialized")
+        finally:
+            initializing = False
+
+async def get_application() -> Application:
+    """Safely get or create the application instance."""
+    global application
+    if not application:
+        if not initializing:
+            await setup_bot()
+        # Wait for initialization to complete
+        while initializing:
+            await asyncio.sleep(0.1)
+    return application
+
+
+# ======================
+# BACKGROUND TASKS
+# ======================
+async def broadcast_news(news: News):
+    """Broadcast news to all chats where the bot is a member."""
     chats = database.get_all_chats()
+    
     if not chats:
         logger.warning("No chats to broadcast to.")
         return 0, 0
-
+    
     message_text = news.format_telegram_message()
     success_count = 0
     error_count = 0
-
+    
     for chat in chats:
         chat_id = chat['chat_id']
+        
         try:
-            message = await application.bot.send_message(
+            # Send message with no markdown formatting to avoid parsing errors
+            message = await bot.send_message(
                 chat_id=chat_id,
                 text=message_text,
-                parse_mode=None,
-                disable_web_page_preview=not bool(news.image_url)
+                parse_mode=None,  # No Markdown parsing
+                disable_web_page_preview=False if news.image_url else True
             )
+            
+            # Log sent message
             database.log_message(news.news_id, chat_id, message.message_id)
             success_count += 1
-<<<<<<< HEAD
             
             # Sleep briefly to avoid hitting rate limits
             await asyncio.sleep(0.5)
             
-=======
-            await asyncio.sleep(0.05)
->>>>>>> upstream/main
         except TelegramError as e:
             logger.error(f"Failed to send message to chat {chat_id}: {e}")
             error_count += 1
+            
+            # If bot was kicked, remove the chat
             if "bot was kicked" in str(e) or "chat not found" in str(e):
                 database.remove_chat(chat_id)
                 logger.info(f"Removed chat {chat_id} because bot was kicked or chat not found")
-
+    
     logger.info(f"Broadcast completed. Success: {success_count}, Errors: {error_count}")
     return success_count, error_count
 
-<<<<<<< HEAD
-async def send_hourly_price_update(context: CallbackContext):
-    """Send price updates to all chats."""
-    from pycoingecko import CoinGeckoAPI
-    cg = CoinGeckoAPI()
-=======
-async def send_hourly_price_update(context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send scheduled price updates."""
-    prices = await get_crypto_prices()
-    if not prices:
-        logger.error("Failed to fetch prices for hourly update.")
+
+async def send_hourly_price_update(context: ContextTypes.DEFAULT_TYPE):
+    """Send hourly price and market updates to all chats from the database."""
+    chats = database.get_all_chats()
+    prices = database.get_market_prices()
+    market_data = database.get_market_summary()
+
+    if not prices or not market_data:
+        logger.warning("Missing price or market data for hourly update.")
         return
 
-    price_message = "💰 *تحديث الأسعار التلقائي كل ساعة:*\n\n"
+    # Build the price section
+    price_message = "💰 *تحديث حالات سوق الكريبتو كل ست ساعات:*\n\n"
     for coin, data in prices.items():
         change_emoji = "🟢" if data["change"] > 0 else "🔴"
         change_sign = "+" if data["change"] > 0 else ""
-        price_message += f"{coin}: ${data['price']:,.2f} {change_emoji} {change_sign}{format_percentage(data['change'])}%\n"
+        price_message += (
+            f"{coin}: `${data['price']:,.2f}` {change_emoji} {change_sign}{data['change']:.2f}%\n"
+        )
 
-    price_message += "\n⚠️ *ملاحظة*: هذه الأسعار تقريبية لأغراض العرض فقط."
+    # Extract market data and sentiment
+    total_market_cap = market_data.get('total_market_cap', 0) / 1e12  # Trillions
+    total_volume = market_data.get('total_volume', 0) / 1e9            # Billions
+    btc_dominance = market_data.get('btc_dominance', 0)
+    eth_dominance = market_data.get('eth_dominance', 0)
+    sentiment = '📈 *صاعد*' if total_market_cap > 2.5 else '📉 *هابط*'
 
->>>>>>> upstream/main
-    chats = database.get_all_chats()
+    # Append market summary
+    price_message += (
+        "\n📊 *ملخص السوق:*\n"
+        f"💰 *القيمة السوقية:* `${total_market_cap:.2f} تريليون`\n"
+        f"📈 *حجم التداول (24 ساعة):* `${total_volume:.1f} مليار`\n"
+        f"🔶 *هيمنة بيتكوين:* `{btc_dominance:.1f}%`\n"
+        f"🔷 *هيمنة إيثريوم:* `{eth_dominance:.1f}%`\n"
+        f"📝 *اتجاه السوق:* {sentiment}\n"
+    )
+
+    price_message += "\n⚠️ *ملاحظة*: الأسعار والبيانات تقريبية لأغراض العرض فقط."
+
+    # Send to all chats
     for chat in chats:
         try:
             await context.bot.send_message(
@@ -427,135 +521,3 @@ async def send_hourly_price_update(context: ContextTypes.DEFAULT_TYPE) -> None:
             )
         except Exception as e:
             logger.error(f"Failed to send price update to chat {chat['chat_id']}: {e}")
-            # Remove the chat from the database if the bot is no longer a member
-            if "Chat not found" in str(e) or "bot was kicked" in str(e):
-                database.remove_chat(chat['chat_id'])
-                logger.info(f"Removed chat {chat['chat_id']} from the database due to inaccessibility.")
-
-async def market_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle the /market command."""
-    try:
-        global_data = cg.get_global()
-        total_mcap = float(global_data['total_market_cap']['usd']) / 1e12
-        total_volume = float(global_data['total_volume']['usd']) / 1e9
-        btc_dominance = global_data['market_cap_percentage']['btc']
-        eth_dominance = global_data['market_cap_percentage']['eth']
-
-        market_info = (
-            "📊 *حالة سوق الكريبتو*\n\n"
-            f"القيمة السوقية الإجمالية: ${total_mcap:.2f} تريليون\n"
-            f"حجم التداول (24 ساعة): ${total_volume:.1f} مليار\n"
-            f"هيمنة بيتكوين: {btc_dominance:.1f}%\n"
-            f"هيمنة إيثريوم: {eth_dominance:.1f}%\n\n"
-            f"اتجاه السوق: {'📈 صاعد' if total_mcap > 2.5 else '📉 هابط'}\n\n"
-            "⚠️ *ملاحظة*: البيانات من CoinGecko"
-        )
-        await update.message.reply_text(market_info, parse_mode=ParseMode.MARKDOWN)
-    except Exception as e:
-        logger.error(f"Failed to fetch market data: {e}")
-        await update.message.reply_text("⚠️ عذراً، حدث خطأ أثناء جلب بيانات السوق. الرجاء المحاولة لاحقاً.")
-
-<<<<<<< HEAD
-from telegram.ext import Application, CommandHandler, MessageHandler
-
-async def setup_bot():
-    """Set up the bot with handlers and webhook."""
-    global application  # Make the application instance globally accessible
-    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-
-    # Add handlers
-    application.add_handler(CommandHandler("start", start_command))
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("about", about_command))
-    application.add_handler(CommandHandler("status", status_command))
-    application.add_handler(CommandHandler("price", price_command))
-    application.add_handler(CommandHandler("market", market_command))
-    application.add_handler(CommandHandler("feedback", feedback_command))
-    async def handle_text(update: Update, context: CallbackContext) -> None:
-        """Handle generic text messages."""
-        await update.message.reply_text("🚀 شكراً لرسالتك! إذا كنت بحاجة إلى مساعدة، استخدم /help.")
-
-    # Add a generic message handler
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-
-    # Schedule hourly price updates
-    job_queue = application.job_queue
-    job_queue.run_repeating(send_hourly_price_update, interval=3600, first=0)
-
-# Track group migrations
-    application.add_handler(MessageHandler(filters.StatusUpdate.MIGRATE, handle_group_migration))
-
-# Track bot membership changes (when added to or removed from a group)
-    from telegram.ext import ChatMemberHandler
-    application.add_handler(ChatMemberHandler(chat_member_updated, ChatMemberHandler.MY_CHAT_MEMBER))
-
-    async def get_application() -> Application:
-        """Get the initialized application instance."""
-    return application
-
-async def get_bot_username():
-    """Get the bot's username."""
-    try:
-        bot_info = await bot.get_me()
-        return bot_info.username
-    except Exception as e:
-        logger.error(f"Error fetching bot username: {e}")
-        return None
-    return application
-
-async def get_bot_username():
-    """Get the bot's username."""
-    try:
-        bot_info = await bot.get_me()
-        return bot_info.username
-    except Exception as e:
-        logging.error(f"Failed to get bot username: {e}")
-        return None
-=======
-async def feedback_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle the /feedback command."""
-    if context.args:
-        feedback_message = ' '.join(context.args)
-        user = update.effective_user
-        logger.info(f"Feedback received from {user.id} ({user.username}): {feedback_message}")
-        await update.message.reply_text("👍 شكراً لك على ملاحظاتك! تم استلامها وسيتم النظر فيها.", parse_mode=ParseMode.MARKDOWN)
-    else:
-        instructions = (
-            "🔄 *إرسال ملاحظات أو اقتراحات*\n\n"
-            "لإرسال ملاحظاتك، استخدم الأمر على الشكل التالي:\n\n"
-            "`/feedback أحب الأخبار التي يوفرها البوت، لكن أتمنى أن تكون هناك تنبيهات للأسعار`\n\n"
-            "نحن نقدر ملاحظاتك ونسعى لتحسين البوت باستمرار!"
-        )
-        await update.message.reply_text(instructions, parse_mode=ParseMode.MARKDOWN)
-
-
-# Command handlers (keep all your existing command handlers here)
-
-async def run_bot() -> None:
-    """Configure and start the bot without closing the event loop."""
-    # Register command handlers (same as your current setup)
-    handlers = [
-        CommandHandler("start", start_command),
-        CommandHandler("help", help_command),
-        CommandHandler("about", about_command),
-        CommandHandler("status", status_command),
-        CommandHandler("price", price_command),
-        CommandHandler("market", market_command),
-        CommandHandler("feedback", feedback_command),
-        MessageHandler(filters.StatusUpdate.MIGRATE, handle_group_migration),
-        ChatMemberHandler(chat_member_updated, ChatMemberHandler.MY_CHAT_MEMBER)
-    ]
-    for handler in handlers:
-        application.add_handler(handler)
-
-    # Schedule price updates
-    application.job_queue.run_repeating(
-        send_hourly_price_update,
-        interval=3600,  # 1 hour
-        first=10
-    )
-
-    # ✅ Start bot without managing the loop
-    await application.initialize()
-    await application.start()
->>>>>>> upstream/main

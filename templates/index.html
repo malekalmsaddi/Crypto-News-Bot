@@ -1,200 +1,92 @@
 <!DOCTYPE html>
-<html data-bs-theme="dark" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>بوت أخبار الكريبتو من إنفترون داو</title>
-    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
-    <style>
-        body {
-            padding-top: 2rem;
-            padding-bottom: 2rem;
-        }
-        .json-example {
-            background-color: var(--bs-dark);
-            border-radius: 6px;
-            padding: 15px;
-            overflow-x: auto;
-        }
-        .bot-link {
-            background-color: var(--bs-success);
-            color: white;
-            font-weight: bold;
-            padding: 10px 20px;
-            border-radius: 6px;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 10px;
-            transition: all 0.3s;
-        }
-        .bot-link:hover {
-            background-color: var(--bs-success-emphasis);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            color: white;
-        }
-        .crypto-icon {
-            font-size: 2rem;
-            margin-right: 10px;
-        }
-        .card-header {
-            background: linear-gradient(45deg, var(--bs-primary-bg-subtle), var(--bs-success-bg-subtle));
-        }
-        .feature-item {
-            margin-bottom: 10px;
-            display: flex;
-            align-items: flex-start;
-        }
-        .feature-icon {
-            margin-right: 10px;
-            color: var(--bs-success);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بوت أخبار الكريبتو - إنفترون داو</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #0d1117;
+      color: #c9d1d9;
+      font-family: 'Tajawal', sans-serif;
+    }
+    .hero {
+      text-align: center;
+      padding: 50px 20px;
+      background: linear-gradient(145deg, #161b22, #0d1117);
+      border-radius: 16px;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    }
+    .hero img {
+      max-width: 150px;
+      margin-bottom: 20px;
+    }
+    .btn-telegram {
+      background-color: #00aced;
+      color: white;
+      font-weight: bold;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+    .btn-telegram:hover {
+      background-color: #0084b4;
+      color: #fff;
+      transform: scale(1.05);
+    }
+    .features li {
+      margin-bottom: 15px;
+    }
+    .footer {
+      text-align: center;
+      color: #8b949e;
+      padding: 20px;
+      border-top: 1px solid #21262d;
+      margin-top: 50px;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-8 mx-auto">
-                <div class="card">
-                    <div class="card-header">
-                        <h1 class="h4 mb-0">
-                            <span class="crypto-icon">📊</span>
-                            بوت أخبار الكريبتو من إنفترون داو
-                        </h1>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-success" role="alert">
-                            <i class="bi bi-check-circle-fill me-2"></i>
-                            <strong>البوت نشط وجاهز لاستقبال أخبار الكريبتو!</strong>
-                        </div>
-
-                        <h2 class="h5 mt-4">نبذة عن البوت</h2>
-                        <p>
-                            يستقبل هذا البوت أخبار العملات الرقمية عبر الويب هوك ويعيد نشرها تلقائيًا
-                            في جميع مجموعات تيليجرام التي تمت إضافته إليها. يساعد هذا البوت المستخدمين في البقاء على اطلاع بأحدث أخبار الكريبتو.
-                        </p>
-
-                        {% if bot_username %}
-                        <p>
-                            <a href="https://t.me/{{ bot_username }}" class="bot-link">
-                                أضف @{{ bot_username }} إلى مجموعتك
-                            </a>
-                        </p>
-                        {% endif %}
-
-                        <h2 class="h5 mt-4">مميزات البوت</h2>
-                        <div class="feature-item">
-                            <span class="feature-icon">✅</span>
-                            <div>نشر تلقائي لأخبار الكريبتو في مجموعات تيليجرام</div>
-                        </div>
-                        <div class="feature-item">
-                            <span class="feature-icon">✅</span>
-                            <div>تنسيق متميز للأخبار مع دعم للروابط والصور</div>
-                        </div>
-                        <div class="feature-item">
-                            <span class="feature-icon">✅</span>
-                            <div>دعم كامل للغة العربية</div>
-                        </div>
-                        <div class="feature-item">
-                            <span class="feature-icon">✅</span>
-                            <div>واجهة برمجة سهلة لإرسال الأخبار</div>
-                        </div>
-
-                        <h2 class="h5 mt-4">كيفية الاستخدام</h2>
-                        <ol>
-                            <li>أضف البوت إلى مجموعتك على تيليجرام</li>
-                            <li>تأكد من أن للبوت صلاحية إرسال الرسائل</li>
-                            <li>أرسل الأخبار إلى نقطة الويب هوك</li>
-                        </ol>
-
-                        <h2 class="h5 mt-4">واجهة برمجة الويب هوك</h2>
-                        <p>
-                            لإرسال الأخبار إلى البوت، قم بإرسال طلب POST إلى <code>/news-webhook</code> بالشكل التالي:
-                        </p>
-
-                        <div class="json-example">
-<pre><code>{
-    "secret": "crypto_news_webhook_secret_2025",
-    "news": {
-        "id": "crypto-123",
-        "title": "بيتكوين يتجاوز 80 ألف دولار للمرة الأولى",
-        "content": "حقق بيتكوين رقماً قياسياً جديداً بتجاوزه 80000 دولار...",
-        "source": "إنفترون داو",
-        "url": "https://invtrondao.com/news/123",
-        "image_url": "https://example.com/bitcoin-80k.jpg",
-        "tags": ["بيتكوين", "العملات_الرقمية", "سوق_الكريبتو"]
-    }
-}</code></pre>
-                        </div>
-
-                        <h2 class="h5 mt-4">أوامر البوت</h2>
-                        <ul>
-                            <li><code>/start</code> - بدء استخدام البوت</li>
-                            <li><code>/help</code> - عرض معلومات المساعدة</li>
-                            <li><code>/about</code> - عرض معلومات عن البوت</li>
-                            <li><code>/status</code> - التحقق من عمل البوت</li>
-                            <li><code>/price</code> - عرض أسعار العملات الرقمية</li>
-                        </ul>
-                        
-                        <h2 class="h5 mt-4">أسعار العملات الرقمية</h2>
-                        <p>
-                            يمكنك استخدام أمر <code>/price</code> في أي وقت للحصول على أحدث أسعار العملات الرقمية.
-                            يدعم البوت العديد من العملات الرقمية الرئيسية مثل بيتكوين وإيثريوم وسولانا وغيرها.
-                        </p>
-                        <div class="alert alert-info" role="alert">
-                            <i class="bi bi-info-circle-fill me-2"></i>
-                            <strong>تلميح:</strong> استخدم أمر <code>/price</code> في مجموعتك للحصول على تحديثات الأسعار أمام جميع الأعضاء!
-                        </div>
-
-                        <h2 class="h5 mt-4">اختبار البوت</h2>
-                        <div class="card mb-3">
-                            <div class="card-header bg-info text-white">
-                                <strong>اختبار الويب هوك</strong>
-                            </div>
-                            <div class="card-body">
-                                <p>لاختبار استلام ونشر الأخبار عبر الويب هوك، استخدم أحد الخيارات التالية:</p>
-                                
-                                <h6 class="mt-3">البث إلى جميع المحادثات:</h6>
-                                <div class="bg-dark p-2 rounded mb-2">
-                                    <code>python test_webhook_endpoint.py</code>
-                                </div>
-                                <p>سيقوم هذا السكريبت بإرسال خبر اختباري إلى الويب هوك ومحاولة نشره لجميع المحادثات.</p>
-                                
-                                <h6 class="mt-3">الإرسال إلى محادثة محددة:</h6>
-                                <div class="bg-dark p-2 rounded mb-2">
-                                    <code>python targeted_webhook_test.py YOUR_CHAT_ID</code>
-                                </div>
-                                <p>سيقوم هذا السكريبت بإرسال خبر اختباري إلى محادثة معينة فقط. مفيد عندما تريد اختبار الإرسال لمحادثة خاصة دون البث للجميع.</p>
-                            </div>
-                        </div>
-
-                        <div class="card mb-3">
-                            <div class="card-header bg-success text-white">
-                                <strong>اختبار الرسائل المباشرة</strong>
-                            </div>
-                            <div class="card-body">
-                                <p>لاختبار الإرسال المباشر إلى محادثتك الشخصية (بدلاً من المجموعات):</p>
-                                <ol>
-                                    <li>تحدث أولاً مع البوت <code>@{{ bot_username }}</code> على تلغرام</li>
-                                    <li>للحصول على معرف محادثتك، تحدث مع <code>@userinfobot</code> على تلغرام</li>
-                                    <li>استخدم سكريبت الاختبار مع معرف محادثتك:</li>
-                                </ol>
-                                <div class="bg-dark p-2 rounded mb-2">
-                                    <code>python test_direct_message.py YOUR_CHAT_ID</code>
-                                </div>
-                                <p>ستتلقى رسالة اختبارية مباشرة على محادثتك الشخصية مع البوت.</p>
-                            </div>
-                        </div>
-
-                    </div>
-                    <div class="card-footer text-muted">
-                        <small>لتكوين هذا البوت، قم بتعيين متغيرات البيئة: <code>TELEGRAM_BOT_TOKEN</code>، <code>WEBHOOK_URL</code>، و <code>WEBHOOK_SECRET</code></small>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <div class="container">
+    <div class="hero">
+        <img src="{{ url_for('static', filename='invtron-dao.png') }}" alt="Crypto Bot Icon">
+      <h1 class="mb-4">بوت أخبار الكريبتو</h1>
+      <p class="lead">ابقَ على اطلاع بآخر أخبار العملات الرقمية مباشرةً في مجموعتك على تيليجرام</p>
+      <a href="https://t.me/Crypto_news_invtron_bot" class="btn-telegram">أضف البوت إلى مجموعتك</a>
     </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <div class="mt-5">
+      <h2>مميزات البوت</h2>
+      <ul class="features">
+        <li>✅ نشر تلقائي لأخبار الكريبتو لحظة بلحظة</li>
+        <li>✅ دعم كامل للغة العربية والتنسيق الاحترافي</li>
+        <li>✅ عرض أسعار العملات الرقمية مباشرة</li>
+        <li>✅ تكامل سلس مع قنوات ومجموعات تيليجرام</li>
+      </ul>
+    </div>
+
+    <div class="mt-5">
+      <h2>كيفية الاستخدام</h2>
+      <ol>
+        <li>أضف البوت إلى مجموعتك على تيليجرام</li>
+        <li>تأكد من منحه صلاحيات إرسال الرسائل</li>
+        <li>ابدأ باستخدام أوامر البوت مثل <code>/start</code> و <code>/price</code></li>
+      </ol>
+    </div>
+
+    <div class="mt-5">
+      <h2>انضم إلى مجتمع إنفترون داو</h2>
+      <p><a href="https://t.me/+obSAMV8Mt8kzYTY0" class="btn-telegram">الانضمام الآن</a></p>
+    </div>
+
+    <div class="footer">
+      &copy; 2025 إنفترون داو - جميع الحقوق محفوظة
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
