@@ -139,7 +139,11 @@ async def run_bot():
         logging.info(f"✅ WEBHOOK_URL loaded: {webhook_url}")
 
     try:
-        await application.bot.set_webhook(url=webhook_url)
+        await application.bot.set_webhook(
+            url=webhook_url,
+            secret_token=WEBHOOK_SECRET
+        )
+
         logging.info(f"✅ Telegram webhook set to: {webhook_url}")
     except Exception as e:
         logging.exception(f"❌ Failed to set Telegram webhook: {e}")
