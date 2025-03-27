@@ -1,4 +1,3 @@
-# webhook.py
 import logging
 import json
 import asyncio
@@ -16,6 +15,7 @@ from shared import shutting_down
 webhook_bp = Blueprint('webhook', __name__)
 logger = logging.getLogger(__name__)
 application = None  # type: Optional[Application]
+
 def set_bot_application(app_instance):
     """Called from main.py to make the PTB Application available here."""
     global application
@@ -32,7 +32,7 @@ def health_check():
 @webhook_bp.route('/news-webhook', methods=['POST'])
 def news_webhook():
     """
-    Example webhook that receives JSON with 'news' data, then broadcasts it.
+    Webhook that receives JSON with 'news' data, then broadcasts it.
     """
     if request.content_type != 'application/json':
         return jsonify({"error": "Content-Type must be application/json"}), 415
@@ -87,8 +87,15 @@ def news_webhook():
             except Exception as exc:
                 logger.error(f"Error broadcasting news: {exc}", exc_info=True)
 
-        # Schedule our async function on the application's event loop:
-        application.create_task(process_broadcast())
+        # ✅ Schedule safely
+        try:
+            loop = asyncio.get_running_loop()
+            if loop.is_running():
+                application.create_task(process_broadcast())
+            else:
+                asyncio.run(process_broadcast())
+        except RuntimeError:
+            asyncio.run(process_broadcast())
 
         response_data = {
             "status": "success",
@@ -123,8 +130,15 @@ def telegram_webhook():
 
         update = Update.de_json(data, application.bot)
 
-        # ✅ Schedule on the existing application loop
-        asyncio.run(application.process_update(update))
+        # ✅ Safe task execution
+        try:
+            loop = asyncio.get_running_loop()
+            if loop.is_running():
+                application.create_task(application.process_update(update))
+            else:
+                asyncio.run(application.process_update(update))
+        except RuntimeError:
+            asyncio.run(application.process_update(update))
 
     except Exception as e:
         logging.exception("Error processing Telegram webhook:")
