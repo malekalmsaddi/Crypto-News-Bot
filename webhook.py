@@ -9,10 +9,11 @@ from config import WEBHOOK_SECRET
 import database
 from models import News
 from bot import broadcast_news
+from flask import Flask
 
 logger = logging.getLogger(__name__)
 webhook_bp = Blueprint('webhook', __name__)
-
+app = Flask(__name__)
 # This gets set in main.py:
 application = None
 
