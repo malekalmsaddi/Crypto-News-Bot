@@ -10,6 +10,8 @@ from telegram import Bot, Update
 from telegram.ext import Application, ApplicationBuilder
 from telegram.constants import ParseMode
 from pycoingecko import CoinGeckoAPI
+from shared_functions import log_error
+
 
 # Environment variables (fail-fast validation)
 TELEGRAM_BOT_TOKEN = os.environ['TELEGRAM_BOT_TOKEN']

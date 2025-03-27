@@ -1,7 +1,7 @@
 from shared_imports import (
     Flask, request, jsonify, render_template,
     logger, ParseMode, Update, asyncio,
-    WEBHOOK_SECRET
+    WEBHOOK_SECRET, log_error
 )
 from shared_apps import (
     get_telegram_app, 
@@ -11,7 +11,6 @@ from shared_apps import (
 from shared_functions import (
     safe_async_exec,
     validate_webhook,
-    log_error
 )
 import database
 from models import News
@@ -19,7 +18,14 @@ from bot import broadcast_news
 import json
 
 # No need to create new Flask app - using the shared blueprint
-# No need for application instance - using get_telegram_app()
+_bot_app = None
+
+def set_bot_application(app):
+    global _bot_app
+    _bot_app = app
+
+def get_bot_application():
+    return _bot_app
 
 @webhook_bp.route('/', methods=['GET'])
 def index():

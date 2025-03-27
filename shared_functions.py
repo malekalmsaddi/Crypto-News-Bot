@@ -1,14 +1,12 @@
 import logging
 
-def log_error(error: Exception):
-    logging.error(f"🚨 {type(error).__name__}: {error}")
-
-from shared_imports import (
-    logger, asyncio, request, Tuple,
-    PriceData, ChatData, ParseMode
-)
 from shared_apps import get_telegram_app, is_shutting_down
 from shared_imports import WEBHOOK_SECRET
+from shared_imports import (
+    logger, asyncio, request,
+    WEBHOOK_SECRET, Tuple, PriceData, 
+    ChatData, ParseMode
+)
 
 # ---- Async Utilities ----
 async def safe_async_exec(coroutine) -> None:
@@ -22,7 +20,10 @@ async def safe_async_exec(coroutine) -> None:
         logger.error(f"Async exec failed: {e}")
         await coroutine
 
-# ---- Webhook Utilities ----
+def log_error(error: Exception):
+    logging.error(f"🚨 {type(error).__name__}: {error}")
+
+
 def validate_webhook() -> Tuple[bool, str]:
     """Validate webhook request."""
     if is_shutting_down():
