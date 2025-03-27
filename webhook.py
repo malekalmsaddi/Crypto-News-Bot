@@ -10,12 +10,10 @@ import database
 from telegram.ext import Application
 from models import News
 from bot import broadcast_news
-from flask import Flask
 from typing import Optional
 
 webhook_bp = Blueprint('webhook', __name__)
 logger = logging.getLogger(__name__)
-app = Flask(__name__)
 application = None  # type: Optional[Application]
 
 def set_bot_application(app_instance):
@@ -117,16 +115,8 @@ def telegram_webhook():
         data = request.get_json(force=True)
         update = Update.de_json(data, application.bot)
 
-        # Correct usage: application.loop is available in python-telegram-bot
-        future = asyncio.run_coroutine_threadsafe(
-            application.process_update(update),
-            asyncio.get_event_loop()
-        )
-        
-        try:
-            future.result(timeout=1)
-        except Exception as e:
-            logging.warning(f"⚠️ Telegram update handling raised: {e}")
+        # ✅ Schedule processing on current running event loop safely
+        asyncio.create_task(application.process_update(update))
 
     except Exception as e:
         logging.exception("Error processing Telegram webhook:")
