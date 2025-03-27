@@ -33,8 +33,10 @@ logging.getLogger().addFilter(SensitiveFilter())
 application = None        # The telegram.ext.Application
 flask_thread = None
 shutdown_lock = asyncio.Lock()
-shutdown_event = asyncio.Event()
-# ========== Flask Setup ==========
+from threading import Event as ThreadingEvent
+
+shutdown_event = ThreadingEvent()
+shutdown_async_event = asyncio.Event()# ========== Flask Setup ==========
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "SomeRandomSecret")
 app.register_blueprint(webhook_bp)
@@ -78,7 +80,7 @@ async def shutdown(shutdown_event):
         shared.shutting_down = True
         logging.info("🛑 Initiating clean shutdown...")
 
-        shutdown_event.set()  # ✅ Wake up tasks waiting for shutdown
+        shutdown_async_event.set()
 
         # 1. Stop Flask thread
         if flask_thread:
@@ -155,7 +157,7 @@ async def run_bot(shutdown_event):
     bot_username = await get_bot_username()
     logging.info(f"✅ Bot username set: @{bot_username}")
 
-    await shutdown_event.wait()  # ✅ Replace sleep loop with graceful wait
+    await shutdown_async_event.wait()  # ✅ Replace sleep loop with graceful wait
 
 async def main():
     """
@@ -176,9 +178,10 @@ async def main():
 # ========== Signal Handling ==========
 def handle_signal(signum, frame):
     logging.info(f"🛑 Received signal {signum}, initiating shutdown...")
+    shutdown_event.set()
     try:
         loop = asyncio.get_running_loop()
-        loop.call_soon_threadsafe(shutdown_event.set)
+        loop.call_soon_threadsafe(shutdown_async_event.set)
     except RuntimeError:
         logging.warning("⚠️ No running event loop, skipping async shutdown")
 
