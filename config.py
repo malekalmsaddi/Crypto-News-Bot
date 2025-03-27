@@ -28,17 +28,23 @@ if not TELEGRAM_BOT_TOKEN:
 # =========================
 # 🌐 Webhook Configuration
 # =========================
-WEBHOOK_URL = os.getenv('WEBHOOK_URL')
-if not WEBHOOK_URL:
-    logging.warning("⚠️ WEBHOOK_URL is not set. Bot will use polling.")
+# Default webhook fallback for Fly.io (change as needed)
+
+DEFAULT_FLY_WEBHOOK = "https://cryptonewsbot.fly.dev/telegram-webhook"
+
+# ✅ Webhook URL: load from env or fallback to Fly.io URL
+WEBHOOK_URL = os.getenv('WEBHOOK_URL', DEFAULT_FLY_WEBHOOK)
+if WEBHOOK_URL == DEFAULT_FLY_WEBHOOK:
+    logging.warning(f"⚠️ WEBHOOK_URL not set. Using default Fly.io webhook: {WEBHOOK_URL}")
 else:
     logging.info(f"✅ Webhook URL loaded: {WEBHOOK_URL}")
 
+# ✅ Webhook Secret is mandatory
 WEBHOOK_SECRET = os.getenv('WEBHOOK_SECRET')
 if not WEBHOOK_SECRET:
     logging.critical("❌ WEBHOOK_SECRET is missing! Required for secure webhook communication.")
-    raise ValueError("WEBHOOK_SECRET is required in .env or environment variables")
-
+    raise RuntimeError("WEBHOOK_SECRET is required in .env o"
+    "
 # =========================
 # ⚙️ Flask Configuration
 # =========================
