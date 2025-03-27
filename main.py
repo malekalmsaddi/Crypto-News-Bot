@@ -33,6 +33,7 @@ logging.getLogger().addFilter(SensitiveFilter())
 application = None        # The telegram.ext.Application
 flask_thread = None
 shutdown_lock = asyncio.Lock()
+shutdown_event = asyncio.Event()
 # ========== Flask Setup ==========
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "SomeRandomSecret")
@@ -160,28 +161,24 @@ async def main():
     """
     Main entrypoint: start Flask in one thread, then run the bot in the current event loop.
     """
-    global flask_thread
-    shutdown_event = asyncio.Event()
-
-
-    # Start Flask server in a separate thread so it can handle webhooks & other routes
+    global flask_thread, shutdown_event
+    shutdown_event.clear()
+    
     flask_thread = FlaskServerThread(app)
     flask_thread.start()
 
     try:
-        # Start the Telegram bot in the current event loop
         await run_bot(shutdown_event)
     except (asyncio.CancelledError, KeyboardInterrupt):
         logging.info("🛑 Shutdown triggered by interrupt")
-        await shutdown()
+        await shutdown(shutdown_event)
 
 # ========== Signal Handling ==========
 def handle_signal(signum, frame):
     logging.info(f"🛑 Received signal {signum}, initiating shutdown...")
     try:
         loop = asyncio.get_running_loop()
-        # NOTE: shutdown_event is no longer global; rely on signal-triggered interruption.
-        pass
+        loop.call_soon_threadsafe(shutdown_event.set)
     except RuntimeError:
         logging.warning("⚠️ No running event loop, skipping async shutdown")
 
