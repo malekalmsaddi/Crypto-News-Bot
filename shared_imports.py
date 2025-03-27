@@ -5,7 +5,7 @@ import asyncio
 from typing import Optional, Dict, Any, List, Tuple
 
 # Third-party
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from telegram import Bot, Update
 from telegram.ext import Application, ApplicationBuilder
 from telegram.constants import ParseMode

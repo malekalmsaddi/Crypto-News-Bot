@@ -1,3 +1,8 @@
+import logging
+
+def log_error(error: Exception):
+    logging.error(f"🚨 {type(error).__name__}: {error}")
+
 from shared_imports import (
     logger, asyncio, request, Tuple,
     PriceData, ChatData, ParseMode
