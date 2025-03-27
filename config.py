@@ -1,11 +1,15 @@
-from dotenv import load_dotenv
 import os
 import logging
 from pathlib import Path
+from dotenv import load_dotenv
 
-# ✅ Load .env from the current directory only
+# ✅ Load .env only if it exists (useful for local development)
 dotenv_path = Path(__file__).resolve().parent / ".env"
-load_dotenv(dotenv_path=dotenv_path)
+if dotenv_path.exists():
+    load_dotenv(dotenv_path=dotenv_path)
+    logging.info("✅ .env loaded from local file")
+else:
+    logging.info("🌐 Running in production mode (Fly.io env vars expected)")
 
 # ✅ Configure logging
 logging.basicConfig(
@@ -38,9 +42,9 @@ if not WEBHOOK_SECRET:
 # =========================
 # ⚙️ Flask Configuration
 # =========================
-PORT = int(os.getenv('PORT', 5000))
+PORT = int(os.getenv('PORT', 8080))  # 8080 for Fly.io
 HOST = os.getenv('HOST', '0.0.0.0')
-DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 logging.info(f"✅ Flask configuration - HOST: {HOST}, PORT: {PORT}, DEBUG: {DEBUG}")
 
