@@ -74,7 +74,7 @@ async def shutdown(shutdown_event):
     async with shutdown_lock:
         if shared.shutting_down:
             return
-        shared.shutting_downshutting_down = True
+        shared.shutting_down = True
         logging.info("🛑 Initiating clean shutdown...")
 
         shutdown_event.set()  # ✅ Wake up tasks waiting for shutdown
