@@ -105,31 +105,27 @@ def news_webhook():
         logger.exception(f"Error processing /news-webhook: {e}")
         return jsonify({"error": "Unexpected error"}), 500
 
-@webhook_bp.route('/telegram-webhook', methods=['POST'])
+@app.route('/telegram-webhook', methods=['POST'])
 def telegram_webhook():
-    """
-    Receives Telegram updates via webhook, then feeds them to PTB.
-    """
-    if not application:
-        return jsonify({"error": "Bot not initialized"}), 503
-
     try:
-        update_json = request.get_json(force=True)
-        update = Update.de_json(update_json, application.bot)
+        if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != WEBHOOK_SECRET:
+            logging.warning("⚠️ Invalid secret token in webhook request")
+            return "Forbidden", 403
 
-        async def handle_update():
-            await application.process_update(update)
+        data = request.get_json(force=True)
+        update = Update.de_json(data, application.bot)
 
-        # ✅ Use the bot’s loop instead of non-existent _loop
-        loop = application.bot.loop
-        if loop.is_running():
-            loop.call_soon_threadsafe(asyncio.create_task, handle_update())
-        else:
-            logging.error("🚨 Telegram bot loop is not running.")
-            return jsonify({"error": "Telegram bot loop not running"}), 500
+        # ✅ Submit the update to the bot’s event loop (run inside the event loop)
+        future = asyncio.run_coroutine_threadsafe(application.process_update(update), application.loop)
 
-        return jsonify({"status": "success"}), 200
+        # Wait briefly (non-blocking) to ensure it’s handed off
+        try:
+            future.result(timeout=1)  # Optional: handle immediate exceptions
+        except Exception as e:
+            logging.warning(f"⚠️ Telegram update handling raised: {e}")
 
     except Exception as e:
-        logger.exception(f"Error processing Telegram webhook: {e}")
-        return jsonify({"error": str(e)}), 500
+        logging.exception("Error processing Telegram webhook:")
+        return "Error", 500
+
+    return "OK", 200
