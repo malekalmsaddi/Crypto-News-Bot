@@ -119,17 +119,14 @@ def telegram_webhook():
 
         async def handle_update():
             await application.process_update(update)
-            await asyncio.sleep(0.1)
 
-        # Just get the loop safely
-        loop = asyncio.get_event_loop()
-
+        # Always schedule on the application's loop
+        loop = application._loop  # Use the actual loop the bot was initialized on
         if loop.is_running():
-            loop.create_task(handle_update())
+            loop.call_soon_threadsafe(asyncio.create_task, handle_update())
         else:
-            # This should never happen if your main loop is running
-            logging.warning("⚠️ No running loop, this should not happen. Falling back to run_until_complete.")
-            loop.run_until_complete(handle_update())
+            logging.error("🚨 Telegram bot loop is not running.")
+            return jsonify({"error": "Telegram bot loop not running"}), 500
 
         return jsonify({"status": "success"}), 200
 
