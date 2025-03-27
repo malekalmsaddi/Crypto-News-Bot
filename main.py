@@ -31,6 +31,7 @@ application = None        # The telegram.ext.Application
 flask_thread = None
 shutting_down = False
 shutdown_lock = asyncio.Lock()
+shutdown_event = asyncio.Event()  # ✅ Event to coordinate clean shutdown
 
 # ========== Flask Setup ==========
 app = Flask(__name__)
@@ -59,7 +60,6 @@ class FlaskServerThread(threading.Thread):
         logging.info("✅ Flask server starting...")
         self.server.serve_forever()
 
-
     def shutdown(self):
         logging.info("🛑 Flask server shutting down...")
         self.server.shutdown()
@@ -76,6 +76,8 @@ async def shutdown():
             return
         shutting_down = True
         logging.info("🛑 Initiating clean shutdown...")
+
+        shutdown_event.set()  # ✅ Wake up tasks waiting for shutdown
 
         # 1. Stop Flask thread
         if flask_thread:
@@ -152,8 +154,7 @@ async def run_bot():
     bot_username = await get_bot_username()
     logging.info(f"✅ Bot username set: @{bot_username}")
 
-    while not shutting_down:
-        await asyncio.sleep(1)
+    await shutdown_event.wait()  # ✅ Replace sleep loop with graceful wait
 
 async def main():
     """

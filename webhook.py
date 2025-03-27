@@ -116,7 +116,7 @@ def telegram_webhook():
         update = Update.de_json(data, application.bot)
 
         # ✅ Schedule processing on current running event loop safely
-        asyncio.create_task(application.process_update(update))
+        asyncio.run(application.process_update(update))
 
     except Exception as e:
         logging.exception("Error processing Telegram webhook:")
