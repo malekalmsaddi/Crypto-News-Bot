@@ -1,7 +1,13 @@
+# shared_apps.py
 from threading import Lock
 import asyncio
-from typing import Optional, Dict, Any, List, Tuple
-from shared_imports import Flask, Application, logger, SESSION_SECRET
+from typing import Optional, Dict, Any
+
+from flask import Flask
+from telegram.ext import Application
+from logging_config import logger
+
+from shared_imports import SESSION_SECRET
 
 # ---- Shared Instances ----
 flask_app = Flask(__name__)
