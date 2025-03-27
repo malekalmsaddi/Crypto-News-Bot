@@ -117,6 +117,10 @@ def telegram_webhook():
             return "Forbidden", 403
 
         data = request.get_json(force=True)
+        if not application or not application.bot:
+            logger.error("🚨 Telegram application is not initialized")
+            return "Bot not ready", 503
+
         update = Update.de_json(data, application.bot)
 
         # ✅ Schedule processing on current running event loop safely

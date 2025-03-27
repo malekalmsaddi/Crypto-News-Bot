@@ -170,7 +170,7 @@ async def main():
 
     try:
         # Start the Telegram bot in the current event loop
-        await run_bot()
+        await run_bot(shutdown_event)
     except (asyncio.CancelledError, KeyboardInterrupt):
         logging.info("🛑 Shutdown triggered by interrupt")
         await shutdown()
