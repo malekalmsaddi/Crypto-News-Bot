@@ -137,10 +137,15 @@ def telegram_webhook():
         async def run_update():
             await safe_async_exec(app.process_update(update))
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(run_update())
-        loop.close()
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        loop = asyncio.get_event_loop()
+        loop.create_task(run_update())
+
 
         return "OK", 200
 
