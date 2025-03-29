@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 import database
 from pycoingecko import CoinGeckoAPI
-from state import shutting_down
+import shared 
 import requests
 
 logger = logging.getLogger(__name__)
@@ -24,11 +24,9 @@ extra_coins = {
     "LINK": "chainlink",
     "AVAX": "avalanche-2",
     "LEO": "leo-token",
-    "TON": "toncoin",
     "XLM": "stellar",
     "WSTETH": "wrapped-steth",
     "SHIB": "shiba-inu",
-    "USDS": "stableusd",
     "HBAR": "hedera-hashgraph",
     "SUI": "sui",
     "DOT": "polkadot",
@@ -36,14 +34,15 @@ extra_coins = {
 }
 
 async def fetch_market_once():
+    print("🌐 Entered fetch_market_once()")
     try:
         logger.info("🌐 Fetching market prices and data from CoinGecko...")
 
-        prices_data = cg.get_price(
+        prices_data = await asyncio.to_thread(lambda: cg.get_price(
             ids=['bitcoin', 'ethereum', 'solana', 'binancecoin', 'cardano'],
             vs_currencies='usd',
             include_24hr_change=True
-        )
+        ))
 
         coins = {
             "BTC": "bitcoin",
@@ -61,7 +60,7 @@ async def fetch_market_once():
 
         logger.info("✅ Market prices stored successfully from CoinGecko.")
 
-        global_data = cg.get_global()
+        global_data = await asyncio.to_thread(cg.get_global)
         if not global_data:
             raise Exception("Empty response from CoinGecko global data")
 
@@ -81,7 +80,6 @@ async def fetch_market_once():
     except Exception as e:
         logger.error(f"❌ CoinGecko failed: {str(e)}. Trying CoinMarketCap fallback...", exc_info=True)
         fetch_market_from_coinmarketcap()
-
 
 def fetch_market_from_coinmarketcap():
     try:
@@ -110,7 +108,6 @@ def fetch_market_from_coinmarketcap():
     except Exception as e:
         logger.error(f"❌ CoinMarketCap fallback failed: {str(e)}", exc_info=True)
 
-
 def fetch_extra_coins_from_coinmarketcap():
     try:
         headers = {
@@ -138,21 +135,25 @@ def fetch_extra_coins_from_coinmarketcap():
     except Exception as e:
         logger.error(f"❌ CoinMarketCap fallback for extra coins failed: {str(e)}", exc_info=True)
 
-
 async def fetch_extra_coins_hourly():
-    while not shutting_down:
+    while not shared.is_shutting_down():
         try:
             logger.info("🕐 Fetching additional market data (hourly)...")
-
-            prices_data = cg.get_price(
-                ids=[coin_id for symbol, coin_id in extra_coins.items() if symbol != "USDT"],
-                vs_currencies='usd',
-                include_24hr_change=True
-            )
+            try:
+                prices_data = await asyncio.wait_for(asyncio.to_thread(lambda: cg.get_price(
+                    ids=[coin_id for symbol, coin_id in extra_coins.items() if symbol != "USDT"],
+                    vs_currencies='usd',
+                    include_24hr_change=True
+                )), timeout=10)
+            except asyncio.TimeoutError:
+                logger.warning("⚠️ CoinGecko extra coins fetch timed out — using CoinMarketCap fallback")
+                fetch_extra_coins_from_coinmarketcap()
+                await asyncio.sleep(3600)
+                continue
 
             for symbol, coin_id in extra_coins.items():
                 if symbol == "USDT":
-                    continue  # Skip USDT manually
+                    continue
 
                 if coin_id in prices_data:
                     coin_info = prices_data[coin_id]
@@ -173,15 +174,19 @@ async def fetch_extra_coins_hourly():
 
         await asyncio.sleep(3600)
 
-
 async def fetch_and_store_market_data():
+    print("📡 Entered fetch_and_store_market_data()")
     try:
         logger.info("🔄 Starting market data fetcher")
-        await fetch_market_once()
-        import state
-        while not state.shutting_down:
+        try:
+            await asyncio.wait_for(fetch_market_once(), timeout=10)
+            logger.info("✅ Initial market fetch completed")
+        except asyncio.TimeoutError:
+            logger.warning("⚠️ Initial market fetch timed out — continuing startup without data")
+
+        while not shared.is_shutting_down():
             await asyncio.sleep(300)
-            if shutting_down:
+            if shared.is_shutting_down():
                 break
             await fetch_market_once()
 
@@ -190,12 +195,11 @@ async def fetch_and_store_market_data():
     finally:
         logger.info("⏹️ Market data fetching stopped")
 
-
 def start_market_fetcher():
-    global _market_fetch_task  # Declare global
+    print("🛰️ Inside start_market_fetcher()")
+    global _market_fetch_task
     try:
         loop = asyncio.get_running_loop()
-        # Create tasks and store them as a list
         task1 = loop.create_task(fetch_and_store_market_data())
         task2 = loop.create_task(fetch_extra_coins_hourly())
         _market_fetch_task = [task1, task2]
@@ -204,7 +208,7 @@ def start_market_fetcher():
         logger.error(f"❌ Failed to start market fetcher: {str(e)}")
 
 def stop_market_fetcher():
-    global _market_fetch_task  # Declare global
+    global _market_fetch_task
     if _market_fetch_task:
         logger.info("⏹️ Stopping market fetchers...")
         for task in _market_fetch_task:
