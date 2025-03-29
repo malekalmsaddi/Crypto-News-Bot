@@ -1,25 +1,20 @@
-# shared_all.py
+# shared.py
 
 import os
 import asyncio
 import logging
 from threading import Lock, Event
-from typing import Optional, Dict, Any, List, Tuple
-
-from flask import Flask, Blueprint, request, jsonify, render_template
-from telegram import Bot, Update
-from telegram.ext import Application, ApplicationBuilder
-from telegram.constants import ParseMode
-from pycoingecko import CoinGeckoAPI
-import threading
-# ---- Shutdown Flag ----
-shutting_down_flag = Event()
-_shutdown_lock = asyncio.Lock()
-shutdown_lock = _shutdown_lock  # clearly expose publicly
-shutting_down_flag = threading.Event()
+from typing import Optional, Dict, Any, Tuple
+from flask import Flask, request
+from telegram.ext import Application
 
 # ---- Logging Config ----
-from logging_config import logger
+logger = logging.getLogger(__name__)
+
+# ---- Shutdown Flag ----
+_shutdown_lock = Lock()
+_shutdown_async_lock = asyncio.Lock()
+_shutting_down = False
 
 # ---- Environment Variables ----
 TELEGRAM_BOT_TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
@@ -31,21 +26,12 @@ SESSION_SECRET = os.getenv("SESSION_SECRET", "fallback-secret")
 PriceData = Dict[str, Dict[str, float]]
 ChatData = Dict[str, Any]
 
-# ---- Sensitive Log Filter ----
-class SensitiveFilter(logging.Filter):
-    def filter(self, record):
-        msg = record.getMessage()
-        if "api.telegram.org/bot" in msg:
-            record.msg = msg.replace(TELEGRAM_BOT_TOKEN, '[REDACTED]')
-        return True
-
 # ---- Shared Flask App ----
-flask_app = Flask(__name__)
+flask_app = Flask(__name__, template_folder=os.path.abspath(os.path.join(os.path.dirname(__file__), '../templates')))
 flask_app.secret_key = SESSION_SECRET
-webhook_bp = Blueprint("webhook", __name__)
 
 # ---- Telegram App Management ----
-_telegram_app = None
+_telegram_app: Optional[Application] = None
 _telegram_app_lock = Lock()
 
 def set_telegram_app(app: Application) -> None:
@@ -62,31 +48,35 @@ def get_telegram_app() -> Application:
 
 # ---- Shutdown Control ----
 def is_shutting_down() -> bool:
-    return shutting_down_flag.is_set()
+    with _shutdown_lock:
+        return _shutting_down
 
-async def set_shutting_down(state: bool) -> None:
-    async with _shutdown_lock:
-        if state:
-            shutting_down_flag.set()
-        else:
-            shutting_down_flag.clear()
+def set_shutting_down(state: bool) -> None:
+    global _shutting_down
+    with _shutdown_lock:
+        _shutting_down = state
 
 shutdown_lock = _shutdown_lock
+async_shutdown_lock = _shutdown_async_lock
 
 # ---- Async Utility ----
 async def safe_async_exec(coroutine) -> None:
     try:
-        loop = asyncio.get_running_loop()
+        loop = asyncio.get_event_loop()
         if loop.is_running():
-            return loop.create_task(coroutine)
-        return await coroutine
+            return await coroutine
+        else:
+            return asyncio.run(coroutine)
     except RuntimeError as e:
         logger.error(f"Async exec failed: {e}")
-        await coroutine
+        try:
+            return asyncio.run(coroutine)
+        except Exception as ex:
+            logger.error(f"Fallback async run failed: {ex}")
 
 # ---- Error Logging ----
 def log_error(error: Exception, context: str = ""):
-    logging.error(f"🚨 {context} - {type(error).__name__}: {error}")
+    logger.error(f"\ud83d\udea8 {context} - {type(error).__name__}: {error}")
 
 # ---- Webhook Validator ----
 def validate_webhook() -> Tuple[bool, str]:
@@ -95,11 +85,3 @@ def validate_webhook() -> Tuple[bool, str]:
     if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != WEBHOOK_SECRET:
         return False, "Invalid secret"
     return True, ""
-
-# ---- Market Formatter ----
-def format_market_update(prices: PriceData) -> str:
-    return "\n".join(
-        f"{coin}: ${data['price']:,.2f} "
-        f"({'🟢+' if data['change'] > 0 else '🔴'}{data['change']:.2f}%)"
-        for coin, data in prices.items()
-    )

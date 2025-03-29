@@ -246,7 +246,7 @@ async def market_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     logger.info(f"📨 Command: {message_text} | From: {user.full_name} (@{user.username}, ID: {user.id})")
 
     global shutting_down
-    async with shared.shutdown_lock:
+    async with shared._shutdown_lock:
         if shared.is_shutting_down:
             logger.warning("⛔ Blocked status command during shutdown")
             return
