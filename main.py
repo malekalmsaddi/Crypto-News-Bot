@@ -154,81 +154,56 @@ async def shutdown(shutdown_event):
 
 # ========== Bot Logic ==========
 async def run_bot(shutdown_event):
-    """Main bot runner with comprehensive initialization checks."""
     global application
-    
     print("🤖 [run_bot] Initializing...")
     logging.info("⚡ Initializing bot components...")
 
-    # 1. Initialize bot core
-    print("🔧 Checking if setup_bot() is called...")
     try:
-        await setup_bot()
-    except Exception as e:
-        logging.error(f"❌ Failed to setup bot: {e}")
-        raise
+        # Initialize application with job queue support
+        application = ApplicationBuilder() \
+            .token(TELEGRAM_BOT_TOKEN) \
+            .build()
+            
+        set_telegram_app(application)
+        setup_handlers(application)
 
-    # 2. Start market data fetcher
-    try:
-        start_market_fetcher()
-        print("✅ Market fetcher started")
-    except Exception as e:
-        logging.error(f"❌ Failed to start market fetcher: {e}")
+        # Only schedule jobs if job_queue is available
+        if application.job_queue:
+            application.job_queue.run_repeating(
+                send_hourly_price_update, 
+                interval=3600,  # 1 hour
+                first=60        # 1 minute delay
+            )
+            logging.info("✅ Hourly price update job scheduled")
+        else:
+            logging.warning("⚠️ JobQueue not available")
 
-    # 3. Verify application exists
-    if not application:
-        logging.error("❌ Telegram Application not initialized!")
-        raise RuntimeError("Application not initialized")
-
-    # 4. Webhook setup
-    try:
         await application.initialize()
         await application.start()
-        logging.info("✅ Bot application started")
 
-        # Clean existing webhook
+        # Webhook setup
         try:
             await application.bot.delete_webhook(drop_pending_updates=True)
-            logging.info("🧹 Old webhook deleted")
-        except Exception as e:
-            logging.warning(f"⚠️ Failed to delete old webhook: {e}")
-
-        # Set new webhook
-        try:
             await application.bot.set_webhook(
                 url=WEBHOOK_URL,
                 secret_token=WEBHOOK_SECRET
             )
             logging.info(f"✅ Webhook registered at: {WEBHOOK_URL}")
         except Exception as e:
-            logging.exception(f"❌ Failed to set webhook: {e}")
+            logging.error(f"❌ Webhook setup failed: {e}")
             raise
 
-    except Exception as e:
-        logging.exception("❌ Failed to start bot application")
-        raise
-
-    # 5. Diagnostic info
-    try:
+        # Diagnostic info
         bot_username = await get_bot_username()
         logging.info(f"🤖 Bot username: @{bot_username}")
-        
-        webhook_info = await application.bot.get_webhook_info()
-        logging.info(f"🌐 Webhook Info: {webhook_info.url} (Pending: {webhook_info.pending_update_count})")
-        
-        chat_count = len(database.get_all_chats())
-        logging.info(f"📊 Active chats: {chat_count}")
+
+        set_shutting_down(False)
+        logging.info("🟢 Bot operational - waiting for shutdown...")
+        await shutdown_event.wait()
+
     except Exception as e:
-        logging.warning(f"⚠️ Diagnostic info unavailable: {e}")
-
-    # 6. Ready state
-    shared.set_shutting_down(False)
-    logging.info("🟢 Bot operational - waiting for shutdown...")
-    
-    await shutdown_event.wait()
-    logging.info("🛑 Shutdown signal received")
-
-
+        logging.error(f"❌ Bot initialization failed: {e}")
+        raise
 # ========== Main ==========
 async def main():
     print("🔧 main() is being called!")

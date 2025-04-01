@@ -589,52 +589,34 @@ init_lock = asyncio.Lock()
 initializing = False
 
 async def setup_bot():
-    """Initialize the Telegram bot application with proper error handling."""
-    print("🔧 Entering setup_bot()")
-    logging.info("🔧 Entering setup_bot()")
-    
     global application, initializing
     
     async with init_lock:
         if application or initializing:
-            logging.info("⚠️ setup_bot() skipped: already initializing or initialized")
             return
             
         initializing = True
         try:
-            logging.info("🔄 Resetting shutdown state to False")
             shared.set_shutting_down(False)
             
-            # Initialize application with error handling
-            try:
-                application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-                setup_handlers(application)
-                logging.info("✅ Telegram Application initialized")
-            except Exception as init_error:
-                logging.error(f"❌ Failed to initialize Telegram Application: {init_error}")
-                raise
+            application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+            setup_handlers(application)
 
-            # Initialize JobQueue with proper checks
-            if hasattr(application, 'job_queue'):
-                try:
-                    application.job_queue.run_repeating(
-                        send_hourly_price_update,
-                        interval=3600,  # 1 hour
-                        first=60,       # 1 minute delay
-                        name="hourly_price_update"
-                    )
-                    logging.info("✅ Hourly price update job scheduled")
-                except Exception as job_error:
-                    logging.error(f"❌ Failed to schedule jobs: {job_error}")
+            # Only schedule jobs if job_queue exists
+            if hasattr(application, 'job_queue') and application.job_queue:
+                application.job_queue.run_repeating(
+                    send_hourly_price_update,
+                    interval=3600,
+                    first=60
+                )
             else:
-                logging.warning("⚠️ JobQueue not available - install python-telegram-bot[job-queue]")
+                logging.warning("JobQueue not available - scheduled jobs won't run")
 
         except Exception as e:
             logging.exception("❌ Critical error in setup_bot()")
             raise
         finally:
             initializing = False
-
 
 async def get_application() -> Application:
     """Thread-safe application getter with timeout handling."""
@@ -720,7 +702,6 @@ async def send_hourly_price_update(context: ContextTypes.DEFAULT_TYPE):
     if await shared.async_is_shutting_down():
         logger.warning("⛔ Blocked status command during shutdown")
         return
-    
     chats = database.get_all_chats()
     prices = database.get_market_prices()
     market_data = database.get_market_summary()
