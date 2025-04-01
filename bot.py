@@ -87,11 +87,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     message = update.message.text if update.message else "<no message>"
     logger.info(f"📨 Command: {message} | From: {user.full_name} (@{user.username}, ID: {user.id})")
 
-    global shutting_down
-    async with shared.shutdown_lock:
-        if shared.is_shutting_down:
-            logger.warning("⛔ Blocked status command during shutdown")
-            return
+# ✅ Correct shutdown check:
+    if await shared.async_is_shutting_down():
+        logger.warning("⛔ Blocked status command during shutdown")
+        return
 
     try:
         help_text = (
@@ -122,11 +121,10 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     message = update.message.text if update.message else "<no message>"
     logger.info(f"📨 Command: {message} | From: {user.full_name} (@{user.username}, ID: {user.id})")
 
-    global shutting_down
-    async with shared.shutdown_lock:
-        if shared.is_shutting_down:
-            logger.warning("⛔ Blocked status command during shutdown")
-            return
+    # ✅ Correct shutdown check:
+    if await shared.async_is_shutting_down():
+        logger.warning("⛔ Blocked status command during shutdown")
+        return
 
     try:
         about_text = (
@@ -166,11 +164,11 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     message_text = update.message.text if update.message else "<no message>"
     logger.info(f"📨 Command: {message_text} | From: {user.full_name} (@{user.username}, ID: {user.id})")
 
-    global shutting_down
-    async with shared.shutdown_lock:
-        if shared.is_shutting_down:
-            logger.warning("⛔ Blocked status command during shutdown")
-            return
+    # ✅ Correct shutdown check:
+    if await shared.async_is_shutting_down():
+        logger.warning("⛔ Blocked status command during shutdown")
+        return
+    
     try:
         status_message = (
             f"✅ <b>البوت يعمل بكفاءة وجاهزية تامة</b>.\n\n"
@@ -193,12 +191,11 @@ async def price_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     message_text = update.message.text if update.message else "<no message>"
     logger.info(f"📨 Command: {message_text} | From: {user.full_name} (@{user.username}, ID: {user.id})")
 
-    global shutting_down
-    async with shared.shutdown_lock:
-        if shared.is_shutting_down:
-            logger.warning("⛔ Blocked status command during shutdown")
-            return
-
+# ✅ Correct shutdown check:
+    if await shared.async_is_shutting_down():
+        logger.warning("⛔ Blocked status command during shutdown")
+        return
+    
     response_sent = False
     try:
         prices = database.get_market_prices()
@@ -245,11 +242,11 @@ async def market_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     message_text = update.message.text if update.message else "<no message>"
     logger.info(f"📨 Command: {message_text} | From: {user.full_name} (@{user.username}, ID: {user.id})")
 
-    global shutting_down
-    async with shared._shutdown_lock:
-        if shared.is_shutting_down:
-            logger.warning("⛔ Blocked status command during shutdown")
-            return
+# ✅ Correct shutdown check:
+    if await shared.async_is_shutting_down():
+        logger.warning("⛔ Blocked status command during shutdown")
+        return
+    
     response_sent = False
     try:
         market_data = database.get_market_summary()
@@ -301,11 +298,10 @@ async def feedback_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     message_text = update.message.text if update.message else "<no message>"
     logger.info(f"📨 Command: {message_text} | From: {user.full_name} (@{user.username}, ID: {user.id})")
 
-    global shutting_down
-    async with shared.shutdown_lock:
-        if shared.is_shutting_down:
-            logger.warning("⛔ Blocked status command during shutdown")
-            return
+# ✅ Correct shutdown check:
+    if await shared.async_is_shutting_down():
+        logger.warning("⛔ Blocked status command during shutdown")
+        return
     try:
         if context.args:
             feedback_message = ' '.join(context.args)
@@ -342,11 +338,11 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message_text = update.message.text if update.message else "<no message>"
     logger.info(f"📨 Message: {message_text} | From: {user.full_name} (@{user.username}, ID: {user.id})")
 
-    global shutting_down
-    async with shared.shutdown_lock:
-        if shared.is_shutting_down:
-            logger.warning("⛔ Blocked status command during shutdown")
-            return
+# ✅ Correct shutdown check:
+    if await shared.async_is_shutting_down():
+        logger.warning("⛔ Blocked status command during shutdown")
+        return
+    
     try:
         if not update.message:
             return
@@ -389,11 +385,11 @@ async def overview_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     message_text = update.message.text if update.message else "<no message>"
     logger.info(f"📨 Command: {message_text} | From: {user.full_name} (@{user.username}, ID: {user.id})")
 
-    global shutting_down
-    async with shared.shutdown_lock:
-        if shared.is_shutting_down:
-            logger.warning("⛔ Blocked status command during shutdown")
-            return
+# ✅ Correct shutdown check:
+    if await shared.async_is_shutting_down():
+        logger.warning("⛔ Blocked status command during shutdown")
+        return
+    
     try:
         prices = database.get_market_prices()
         market_data = database.get_market_summary()
@@ -453,11 +449,11 @@ async def handle_group_migration(update: Update, context: ContextTypes.DEFAULT_T
     user = update.effective_user
     logger.info(f"📨 Group migration event triggered by: {user.full_name} (@{user.username}, ID: {user.id})" if user else "📨 Group migration triggered.")
 
-    global shutting_down
-    async with shared.shutdown_lock:
-        if shared.is_shutting_down:
-            logger.warning("⛔ Blocked status command during shutdown")
-            return
+    # ✅ Correct shutdown check:
+    if await shared.async_is_shutting_down():
+        logger.warning("⛔ Blocked status command during shutdown")
+        return
+    
     try:
         if update.message and update.message.migrate_from_chat_id:
             old_chat_id = update.message.migrate_from_chat_id
@@ -485,11 +481,10 @@ async def chat_member_updated(update: Update, context: ContextTypes.DEFAULT_TYPE
     logger.info(f"🤖 Bot membership update in {chat_title} ({chat_id}): "
                 f"{result.old_chat_member.status} → {result.new_chat_member.status}")
 
-    global shutting_down
-    async with shared.shutdown_lock:
-        if shared.is_shutting_down:
-            logger.warning("⛔ Blocked status command during shutdown")
-            return
+# ✅ Correct shutdown check:
+    if await shared.async_is_shutting_down():
+        logger.warning("⛔ Blocked status command during shutdown")
+        return
     try:
         # Bot was added to a chat
         if (result.old_chat_member.status in ['left', 'kicked'] and
@@ -531,11 +526,11 @@ async def chat_member_updated(update: Update, context: ContextTypes.DEFAULT_TYPE
         logger.error(f"❌ Error in chat_member_updated: {e}", exc_info=True)
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-    global shutting_down
-    async with shared.shutdown_lock:
-        if shared.is_shutting_down:
-            logger.warning("⛔ Blocked status command during shutdown")
-            return
+# ✅ Correct shutdown check:
+    if await shared.async_is_shutting_down():
+        logger.warning("⛔ Blocked status command during shutdown")
+        return
+    
     logger.error(f"❌ Exception in handler: {context.error}", exc_info=True)
 
     # Attempt to send user-friendly error message
@@ -591,14 +586,17 @@ init_lock = asyncio.Lock()
 initializing = False
 
 async def setup_bot():
+    print("🔧 Entering setup_bot()")  # Debug print
+    logging.info("🔧 Entering setup_bot()")  # Add this to confirm the function is called
     global application, initializing
     async with init_lock:
         if application or initializing:
+            logging.info("⚠️ setup_bot() skipped: already initializing or initialized")
             return
         initializing = True
         try:
-            await shared.set_shutting_down(False)  # ✅ This is the correct fix clearly
-
+            logging.info("🔄 Resetting shutdown state to False")
+            shared.set_shutting_down(False)
             application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
             setup_handlers(application)
 
@@ -638,12 +636,11 @@ async def get_application() -> Application:
 # ======================
 async def broadcast_news(news: News):
     """Broadcast news to all chats where the bot is a member."""
-    global shutting_down
-    async with shared.shutdown_lock:
-        if shared.is_shutting_down:
-            logger.warning("⛔ Blocked status command during shutdown")
-            return
-    
+# ✅ Correct shutdown check:
+    if await shared.async_is_shutting_down():
+        logger.warning("⛔ Blocked status command during shutdown")
+        return
+        
     chats = database.get_all_chats()
     if not chats:
         logger.warning("⚠️ No chats to broadcast to.")
@@ -691,11 +688,11 @@ async def broadcast_news(news: News):
 
 async def send_hourly_price_update(context: ContextTypes.DEFAULT_TYPE):
     """Send hourly price and market updates to all chats from the database."""
-    global shutting_down
-    async with shared.shutdown_lock:
-        if shared.is_shutting_down:
-            logger.warning("⛔ Blocked status command during shutdown")
-            return
+# ✅ Correct shutdown check:
+    if await shared.async_is_shutting_down():
+        logger.warning("⛔ Blocked status command during shutdown")
+        return
+    
     chats = database.get_all_chats()
     prices = database.get_market_prices()
     market_data = database.get_market_summary()

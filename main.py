@@ -1,10 +1,26 @@
+print(f"🔧 __name__ is: {__name__}")
+import sentry_sdk
+from flask import Flask
+
+sentry_sdk.init(
+    dsn="https://b5b64b8d7d2f02d33d58b3efe129d757@o4509078491955200.ingest.us.sentry.io/4509078495428608",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)
+
+app = Flask(__name__)
+
+@app.route("/")
+def hello_world():
+    1/0  # raises an error
+    return "<p>Hello, World!</p>"
 import os
 import logging
 import asyncio
 import threading
 import signal
-
-from flask import Flask, jsonify, render_template
+from flask import jsonify, render_template
 from werkzeug.serving import make_server
 from webhook import webhook_bp
 from config import HOST, PORT, DEBUG, TELEGRAM_BOT_TOKEN, WEBHOOK_URL, WEBHOOK_SECRET
@@ -12,14 +28,14 @@ import database
 import shared
 from market import start_market_fetcher, stop_market_fetcher
 from telegram.ext import ApplicationBuilder
-from bot import get_bot_username, setup_handlers, send_hourly_price_update
+from bot import get_bot_username, setup_handlers, send_hourly_price_update, setup_bot
 from threading import Event as ThreadingEvent
 from shared import (
     set_telegram_app,
     is_shutting_down,
     set_shutting_down,
+    sync_shutdown_lock,
     shutdown_lock,
-    async_shutdown_lock,
     flask_app  # ✅ Using single shared instance
 )
 
@@ -49,6 +65,7 @@ shutdown_event = ThreadingEvent()
 shared.shutdown_event = shutdown_event
 flask_app.secret_key = os.environ.get("SESSION_SECRET", "SomeRandomSecret")
 flask_app.register_blueprint(webhook_bp)
+
 
 print("📍 Registered Flask routes:")
 for rule in flask_app.url_map.iter_rules():
@@ -87,60 +104,82 @@ class FlaskServerThread(threading.Thread):
 
 # ========== Shutdown Logic ==========
 async def shutdown(shutdown_event):
-    print('🛠️ [shutdown] Acquiring shutdown lock...')
-    async with async_shutdown_lock:
+    """Graceful shutdown procedure with proper resource cleanup"""
+    print('🛠️ [shutdown] Starting graceful shutdown sequence...')
+    
+    async with shutdown_lock:
         if is_shutting_down():
-            print('🚫 [shutdown] Already shutting down. Aborting.')
+            print('🚫 [shutdown] Already shutting down - skipping')
             return
 
         set_shutting_down(True)
-        print('🔒 [shutdown] Shutdown flag set - rejecting new requests')
-        logging.info("🛑 Initiating clean shutdown sequence...")
-
+        print('🔒 [shutdown] Shutdown flag set')
+        
         try:
-            shutdown_async_event.set()
-            print('✅ [shutdown] Async components notified')
+            # 1. Notify async components
+            if shutdown_async_event:
+                shutdown_async_event.set()
+                print('✅ [shutdown] Async components notified')
 
+            # 2. Stop Flask server (sync operation)
             if flask_thread and flask_thread.is_alive():
+                print('🛑 [shutdown] Stopping Flask server...')
                 flask_thread.shutdown()
                 flask_thread.join(timeout=5)
-                if flask_thread.is_alive():
-                    logging.warning("Flask server didn't terminate gracefully")
                 print('✅ [shutdown] Flask server stopped')
 
+            # 3. Shutdown Telegram application
             if application:
+                print('🤖 [shutdown] Stopping Telegram application...')
                 try:
+                    # Stop receiving updates first
                     await application.stop()
+                    # Then shutdown completely
                     await application.shutdown()
-                    print('💤 [shutdown] Telegram application shutdown complete')
+                    print('💤 [shutdown] Telegram application stopped')
+                    
+                    # Explicitly close the HTTP client
+                    if hasattr(application.bot, '_client'):
+                        await application.bot._client.aclose()
                 except Exception as e:
-                    logging.error(f"Telegram shutdown failed: {str(e)}")
+                    logging.error(f"Telegram shutdown error: {str(e)}")
 
+            # 4. Stop market fetcher
+            print('📊 [shutdown] Stopping market fetcher...')
             stop_market_fetcher()
             print('✅ [shutdown] Market fetcher stopped')
 
+            # 5. Cancel pending tasks with timeout
+            print('🧹 [shutdown] Cleaning up background tasks...')
             current_task = asyncio.current_task()
             tasks = [t for t in asyncio.all_tasks() if t is not current_task]
+            
             for task in tasks:
                 task.cancel()
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            for task, result in zip(tasks, results):
-                if isinstance(result, Exception):
-                    logging.warning(f"Task {task.get_name()} failed during shutdown: {str(result)}")
-
-            print('✅ [shutdown] Background tasks cleared')
+            
+            try:
+                await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=5.0)
+                print('✅ [shutdown] Background tasks cleared')
+            except asyncio.TimeoutError:
+                logging.warning("⚠️ Some tasks didn't complete during shutdown timeout")
 
         except Exception as e:
-            logging.critical(f"🆘 Critical shutdown error: {str(e)}")
-            raise
+            logging.critical(f"🆘 Critical shutdown error: {str(e)}", exc_info=True)
         finally:
             logging.info("🛑 Shutdown sequence completed")
+            print('✅ [shutdown] Shutdown completed successfully')
 
 # ========== Bot Logic ==========
 async def run_bot(shutdown_event):
     global application
     print("🤖 [run_bot] Initializing...")
     logging.info("⚡ Initializing bot components...")
+
+    print("🔧 Checking if setup_bot() is called...")
+    try:
+        await setup_bot()
+    except Exception as e:
+        print(f"❌ Exception in setup_bot(): {e}")
 
     start_market_fetcher()
     print("✅ Returned from start_market_fetcher()")
@@ -198,36 +237,49 @@ async def run_bot(shutdown_event):
 
 # ========== Main ==========
 async def main():
+    print("🔧 main() is being called!")
+    
     global flask_thread, shutdown_async_event
     shutdown_event.clear()
 
-    print("🔧 [1] Starting Flask thread...")
-    flask_thread = FlaskServerThread(flask_app)
-    flask_thread.start()
-    print("🔧 [2] Flask thread started ✅")
-
-    shutdown_async_event = asyncio.Event()
-    print("🔧 [3] Entering run_bot()...")
-
     try:
+        # Start Flask thread
+        flask_thread = FlaskServerThread(flask_app)
+        flask_thread.start()
+        
+        # Initialize bot
+        shutdown_async_event = asyncio.Event()
         await run_bot(shutdown_event)
-        await shutdown(shutdown_event)
-
+        
     except (asyncio.CancelledError, KeyboardInterrupt):
-        print("🛑 [!] Shutdown triggered")
+        print("🛑 Shutdown triggered")
         await shutdown(shutdown_event)
+    except Exception as e:
+        logging.critical(f"Unexpected error: {e}")
+        await shutdown(shutdown_event)
+        raise
 
 # ========== Signal Handling ==========
 def handle_signal(signum, frame):
-    logging.info(f"🛑 Received signal {signum}, initiating shutdown...")
+    """Enhanced signal handler that works with existing shutdown flow"""
+    if is_shutting_down():
+        logging.warning("🚨 Forceful termination (already shutting down)")
+        os._exit(1)  # Only used as last resort
+    
+    logging.info(f"🛑 Received signal {signum}, initiating graceful shutdown...")
     shutdown_event.set()
+    
     try:
         loop = asyncio.get_running_loop()
-        loop.call_soon_threadsafe(shutdown_async_event.set)
+        if loop.is_running():
+            # Schedule shutdown without disrupting existing event loop
+            asyncio.create_task(shutdown(shutdown_event))
     except RuntimeError:
-        logging.warning("⚠️ No running loop, skipping async shutdown")
+        logging.warning("⚠️ Signal handler: No running event loop")
+
 
 if __name__ == '__main__':
+    print("🔧 Script is being executed directly!")  # Debug print
     signal.signal(signal.SIGINT, handle_signal)
     signal.signal(signal.SIGTERM, handle_signal)
 

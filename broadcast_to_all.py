@@ -4,13 +4,8 @@ import os
 import database
 from models import News
 from database import get_all_chats, log_message
-<<<<<<< HEAD
 from telegram import Bot
 from telegram.constants import ParseMode  # Updated for compatibility with python-telegram-bot v20+
-=======
-from telegram import Bot, Update
-from telegram.constants import ParseMode
->>>>>>> upstream/main
 from telegram.error import TelegramError
 
 # Set up logging

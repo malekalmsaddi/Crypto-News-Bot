@@ -5,6 +5,7 @@ from flask import Blueprint, request, jsonify, redirect, url_for
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import Application
+from functools import wraps
 
 from logging_config import logger
 import shared
@@ -13,14 +14,33 @@ from models import News
 from bot import broadcast_news
 from shared import (
     log_error,
-    WEBHOOK_SECRET,
-    get_telegram_app, 
+    WEBHOOK_SECRET, 
+    get_telegram_app,
     is_shutting_down,
-    safe_async_exec,
     validate_webhook,
+    safe_async_exec
 )
 
 webhook_bp = Blueprint("webhook", __name__)
+
+def async_route(f):
+    """Decorator to handle async routes properly"""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        try:
+            return loop.run_until_complete(f(*args, **kwargs))
+        except RuntimeError as e:
+            if "Event loop is closed" in str(e):
+                logger.error("Event loop closed during request")
+                return jsonify({"error": "Service unavailable"}), 503
+            raise
+    return wrapper
 
 @webhook_bp.route('/', methods=['GET', 'POST'])
 def index():
@@ -36,9 +56,10 @@ def index():
 @webhook_bp.route('/health', methods=['GET'])
 def health_check():
     return jsonify({
-        "status": "ok", 
+        "status": "ok",
         "service": "telegram-news-bot",
-        "shutdown_status": is_shutting_down()
+        "shutdown_status": is_shutting_down(),
+        "event_loop": "running" if not shared.is_shutting_down() else "closing"
     })
 
 @webhook_bp.route('/shutdown', methods=['POST'])
@@ -53,6 +74,9 @@ def shutdown_server():
 
 @webhook_bp.route('/news-webhook', methods=['POST'])
 def news_webhook():
+    if is_shutting_down():
+        return jsonify({"error": "Service is shutting down"}), 503
+
     if request.content_type != 'application/json':
         return jsonify({"error": "Content-Type must be application/json"}), 415
 
@@ -79,6 +103,9 @@ def news_webhook():
         async def process_broadcast():
             try:
                 app = get_telegram_app()
+                if not app or not app.running:
+                    raise RuntimeError("Telegram application not running")
+                
                 if target_chat_id:
                     msg = await app.bot.send_message(
                         chat_id=target_chat_id,
@@ -93,7 +120,10 @@ def news_webhook():
                 log_error(e, "news broadcast")
                 return 0, 1
 
-        asyncio.run(process_broadcast())
+        # Use safe_async_exec instead of direct asyncio.run
+        success, _ = safe_async_exec(process_broadcast())
+        if not success:
+            return jsonify({"error": "Failed to process broadcast"}), 500
 
         return jsonify({
             "status": "success",
@@ -106,14 +136,8 @@ def news_webhook():
         return jsonify({"error": "Processing failed"}), 500
 
 @webhook_bp.route('/telegram-webhook', methods=['POST'])
-def telegram_webhook():
-    try:
-        return asyncio.run(_handle_telegram_webhook())
-    except RuntimeError as e:
-        logger.error(f"RuntimeError during webhook processing: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-async def _handle_telegram_webhook():
+@async_route
+async def telegram_webhook():
     request_id = f"{datetime.now().strftime('%Y%m%d%H%M%S')}-{hash(datetime.now().timestamp())}"
     logger.info(f"🔔 [{request_id}] Incoming Telegram webhook")
 
@@ -137,6 +161,10 @@ async def _handle_telegram_webhook():
     try:
         update_data = request.get_json(force=True)
         app = get_telegram_app()
+        
+        if not app or not app.running:
+            raise RuntimeError("Telegram application not running")
+
         update = Update.de_json(update_data, app.bot)
 
         user = update.effective_user or update.effective_chat
@@ -158,6 +186,16 @@ async def _handle_telegram_webhook():
             "timestamp": datetime.now().isoformat()
         })
 
+    except RuntimeError as e:
+        if "Event loop is closed" in str(e):
+            logger.error(f"Event loop closed during webhook processing: {request_id}")
+            return jsonify({
+                "status": "error",
+                "code": 503,
+                "message": "Service unavailable",
+                "request_id": request_id
+            }), 503
+        raise
     except Exception as e:
         error_id = f"ERR-{hash(datetime.now().timestamp())}"
         log_error(e, f"[{request_id}] update-processing")

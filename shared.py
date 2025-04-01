@@ -5,7 +5,7 @@ import asyncio
 import logging
 from threading import Lock, Event
 from typing import Optional, Dict, Any, Tuple
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from telegram.ext import Application
 
 # ---- Logging Config ----
@@ -49,15 +49,17 @@ def get_telegram_app() -> Application:
 # ---- Shutdown Control ----
 def is_shutting_down() -> bool:
     with _shutdown_lock:
+        print(f"🔍 is_shutting_down() called, _shutting_down: {_shutting_down}")
         return _shutting_down
 
 def set_shutting_down(state: bool) -> None:
     global _shutting_down
     with _shutdown_lock:
+        print(f"🔄 Setting shutdown state to: {state}")  # Debug print
         _shutting_down = state
 
-shutdown_lock = _shutdown_lock
-async_shutdown_lock = _shutdown_async_lock
+sync_shutdown_lock = _shutdown_lock  # For synchronous code
+shutdown_lock = _shutdown_async_lock  # For async code (primary interface)
 
 # ---- Async Utility ----
 async def safe_async_exec(coroutine) -> None:
@@ -85,3 +87,25 @@ def validate_webhook() -> Tuple[bool, str]:
     if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != WEBHOOK_SECRET:
         return False, "Invalid secret"
     return True, ""
+# ---- Reject Requests During Shutdown ----
+@flask_app.before_request
+def reject_if_shutting_down():
+    shutting_down = is_shutting_down()
+    print(f"🔍 reject_if_shutting_down() called, is_shutting_down: {shutting_down}")
+    if shutting_down:
+        return jsonify({"error": "Service is shutting down"}), 503
+    
+async def check_shutdown() -> bool:
+    """Async-safe shutdown check"""
+    async with shutdown_lock:
+        return _shutting_down
+
+def sync_check_shutdown() -> bool:
+    """Sync shutdown check"""
+    with sync_shutdown_lock:
+        return _shutting_down
+    
+async def async_is_shutting_down() -> bool:
+    """Thread-safe async shutdown check"""
+    async with shutdown_lock:
+        return _shutting_down
