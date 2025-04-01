@@ -1,20 +1,3 @@
-print(f"🔧 __name__ is: {__name__}")
-import sentry_sdk
-from flask import Flask
-
-sentry_sdk.init(
-    dsn="https://b5b64b8d7d2f02d33d58b3efe129d757@o4509078491955200.ingest.us.sentry.io/4509078495428608",
-    # Add data like request headers and IP for users,
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
-)
-
-app = Flask(__name__)
-
-@app.route("/")
-def hello_world():
-    1/0  # raises an error
-    return "<p>Hello, World!</p>"
 import os
 import logging
 import asyncio
