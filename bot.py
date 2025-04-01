@@ -11,6 +11,7 @@ import database
 from models import News
 import weakref
 import shared
+import time
     
 BOT_LOOP = None
 
@@ -588,50 +589,75 @@ init_lock = asyncio.Lock()
 initializing = False
 
 async def setup_bot():
-    print("🔧 Entering setup_bot()")  # Debug print
-    logging.info("🔧 Entering setup_bot()")  # Add this to confirm the function is called
+    """Initialize the Telegram bot application with proper error handling."""
+    print("🔧 Entering setup_bot()")
+    logging.info("🔧 Entering setup_bot()")
+    
     global application, initializing
+    
     async with init_lock:
         if application or initializing:
             logging.info("⚠️ setup_bot() skipped: already initializing or initialized")
             return
+            
         initializing = True
         try:
             logging.info("🔄 Resetting shutdown state to False")
             shared.set_shutting_down(False)
-            application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-            setup_handlers(application)
+            
+            # Initialize application with error handling
+            try:
+                application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+                setup_handlers(application)
+                logging.info("✅ Telegram Application initialized")
+            except Exception as init_error:
+                logging.error(f"❌ Failed to initialize Telegram Application: {init_error}")
+                raise
 
-            application.job_queue.run_repeating(
-                send_hourly_price_update,
-                interval=3600,
-                first=60,
-                name="hourly_price_update"
-            )
+            # Initialize JobQueue with proper checks
+            if hasattr(application, 'job_queue'):
+                try:
+                    application.job_queue.run_repeating(
+                        send_hourly_price_update,
+                        interval=3600,  # 1 hour
+                        first=60,       # 1 minute delay
+                        name="hourly_price_update"
+                    )
+                    logging.info("✅ Hourly price update job scheduled")
+                except Exception as job_error:
+                    logging.error(f"❌ Failed to schedule jobs: {job_error}")
+            else:
+                logging.warning("⚠️ JobQueue not available - install python-telegram-bot[job-queue]")
 
-            logging.info("✅ Bot application initialized and hourly job scheduled")
-
+        except Exception as e:
+            logging.exception("❌ Critical error in setup_bot()")
+            raise
         finally:
             initializing = False
 
+
 async def get_application() -> Application:
-    """Safely get or create the application instance."""
+    """Thread-safe application getter with timeout handling."""
     global application
+    
+    if application:
+        return application
+        
+    if not initializing:
+        await setup_bot()
+    
+    # Wait with timeout
+    timeout = 10  # seconds
+    start_time = time.time()
+    while not application and (time.time() - start_time) < timeout:
+        await asyncio.sleep(0.1)
+    
     if not application:
-        if not initializing:
-            await setup_bot()
-        # Wait for setup to complete (but avoid infinite wait on failure)
-        retries = 0
-        while initializing and retries < 50:  # wait up to 5 seconds
-            await asyncio.sleep(0.1)
-            retries += 1
-
-        if not application:
-            logger.error("❌ Application failed to initialize.")
-            raise RuntimeError("Bot application could not be initialized.")
-            
+        error_msg = "❌ Application initialization timed out (10s)"
+        logging.error(error_msg)
+        raise RuntimeError(error_msg)
+        
     return application
-
 
 # ======================
 # BACKGROUND TASKS
