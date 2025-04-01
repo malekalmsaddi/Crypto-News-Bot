@@ -1,3 +1,5 @@
+from __future__ import annotations  # At the top of the file  
+application: Application | None = None 
 import logging
 import asyncio
 from telegram import Update, Bot
