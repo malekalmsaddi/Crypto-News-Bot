@@ -25,6 +25,7 @@ COPY register_commands.py /app/
 COPY setup_group.py /app/
 COPY static/ /app/static/
 COPY attached_assets/ /app/attached_assets/
+COPY templates/ /app/templates/
 
 
 
