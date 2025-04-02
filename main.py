@@ -169,19 +169,20 @@ async def run_bot(shutdown_event):
         set_telegram_app(application)
         setup_handlers(application)
 
-        # Only schedule jobs if job_queue is available
+        await application.initialize()
+        await application.start()
+
+        # ✅ Schedule job AFTER app starts
         if application.job_queue:
+            logging.info("📅 Scheduling hourly update job...")
             application.job_queue.run_repeating(
                 send_hourly_price_update, 
-                interval=3600,  # 1 hour
-                first=60        # 1 minute delay
+                interval=3600,  
+                first=10  # reduce to 10s for test, can revert to 60
             )
             logging.info("✅ Hourly price update job scheduled")
         else:
             logging.warning("⚠️ JobQueue not available")
-
-        await application.initialize()
-        await application.start()
 
         # Webhook setup
         try:
@@ -195,7 +196,6 @@ async def run_bot(shutdown_event):
             logging.error(f"❌ Webhook setup failed: {e}")
             raise
 
-        # Diagnostic info
         bot_username = await get_bot_username()
         logging.info(f"🤖 Bot username: @{bot_username}")
 
@@ -206,6 +206,7 @@ async def run_bot(shutdown_event):
     except Exception as e:
         logging.error(f"❌ Bot initialization failed: {e}")
         raise
+
 # ========== Main ==========
 async def main():
     print("🔧 main() is being called!")
