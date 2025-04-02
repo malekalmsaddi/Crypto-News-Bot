@@ -218,6 +218,8 @@ async def main():
         flask_thread = FlaskServerThread(flask_app)
         flask_thread.start()
         
+        start_market_fetcher()
+
         # Initialize bot
         shutdown_async_event = asyncio.Event()
         await run_bot(shutdown_event)
