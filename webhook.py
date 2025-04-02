@@ -1,11 +1,12 @@
 # Standard library
 import asyncio
+import os
 import json
 from datetime import datetime
 from functools import wraps
 
 # Flask
-from flask import Blueprint, request, jsonify, redirect, url_for, render_template
+from flask import Flask, Blueprint, request, jsonify, redirect, url_for, render_template
 
 # Telegram
 from telegram import Update
@@ -28,6 +29,12 @@ from shared import (
 
 
 webhook_bp = Blueprint("webhook", __name__)
+app = Flask(
+    __name__,
+    template_folder=os.path.join(os.getcwd(), 'templates'),
+    static_folder=os.path.join(os.getcwd(), 'static')
+)
+
 
 def async_route(f):
     """Decorator to handle async routes properly"""
