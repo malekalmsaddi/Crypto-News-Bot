@@ -12,13 +12,13 @@ from telegram import Update
 from telegram.constants import ParseMode
 
 # Local modules
-from logging_config import logger
 import shared
 import database
 from models import News
 from bot import broadcast_news
 from shared import (
     log_error,
+    logger,
     WEBHOOK_SECRET, 
     get_telegram_app,
     is_shutting_down,
