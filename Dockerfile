@@ -12,6 +12,7 @@ COPY admin_ui.py /app/
 COPY bot.py /app/
 COPY config.py /app/
 COPY models.py /app/
+COPY database.py /app/
 COPY requirements.txt /app/
 COPY templates/ /app/templates/
 
