@@ -37,3 +37,5 @@ EXPOSE 8080
 
 # Run the bot
 CMD ["python", "main.py"]
+RUN echo "Listing /app/templates:" && ls -la /app/templates
+
