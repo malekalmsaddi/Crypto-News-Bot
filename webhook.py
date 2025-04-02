@@ -1,7 +1,7 @@
 import asyncio
 import json
 from datetime import datetime
-from flask import Blueprint, request, jsonify, redirect, url_for
+from flask import Blueprint, request, jsonify, redirect, url_for, render_template
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import Application
@@ -48,10 +48,7 @@ def index():
         logger.info("Redirecting POST from '/' to '/telegram-webhook'")
         return redirect(url_for('webhook.telegram_webhook'), code=307)
 
-    return jsonify({
-        "status": "ok",
-        "shutting_down": is_shutting_down()
-    })
+    return render_template ("index.html")
 
 @webhook_bp.route('/health', methods=['GET'])
 def health_check():
