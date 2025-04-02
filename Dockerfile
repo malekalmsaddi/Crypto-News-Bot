@@ -27,6 +27,7 @@ COPY setup_group.py /app/
 COPY static/ /app/static/
 COPY attached_assets/ /app/attached_assets/
 COPY templates/ /app/templates/
+RUN echo "🔍 TEMPLATES:" && ls -la /app/templates
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
