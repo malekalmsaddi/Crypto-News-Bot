@@ -13,6 +13,7 @@ from telegram.constants import ParseMode
 
 # Local modules
 from logging_config import logger
+import shared
 import database
 from models import News
 from bot import broadcast_news
