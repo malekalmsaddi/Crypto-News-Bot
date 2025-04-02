@@ -48,6 +48,8 @@ shutdown_event = ThreadingEvent()
 shared.shutdown_event = shutdown_event
 flask_app.secret_key = os.environ.get("SESSION_SECRET", "SomeRandomSecret")
 flask_app.register_blueprint(webhook_bp)
+from admin_ui import admin_bp
+flask_app.register_blueprint(admin_bp, url_prefix="/admin")
 
 
 print("📍 Registered Flask routes:")
@@ -56,8 +58,8 @@ for rule in flask_app.url_map.iter_rules():
 
 database.init_db()
 
-@flask_app.route("/test-html")
-def test_html():
+@flask_app.route("")
+def serve_index():
     print("📄 Serving HTML template")
     return render_template("index.html")
 
