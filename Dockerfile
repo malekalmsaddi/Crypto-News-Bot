@@ -1,14 +1,25 @@
-# Use an official Python runtime as the base image
+# Stage 1: Build base with Python
 FROM python:3.9-slim
 
-# Set the working directory in the container
+# Set working directory inside container
 WORKDIR /app
 
-# Copy all project files to the container's /app directory
-COPY . .
+# Copy only required files explicitly
+COPY main.py /app/
+COPY shared.py /app/
+COPY webhook.py /app/
+COPY admin_ui.py /app/
+COPY bot.py /app/
+COPY config.py /app/
+COPY models.py /app/
+COPY requirements.txt /app/
+COPY templates/ /app/templates/
 
-# Install dependencies from requirements.txt
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Command to run your bot script (replace "main.py" with your actual file)
+# Expose port 8080 for Fly.io
+EXPOSE 8080
+
+# Run the bot
 CMD ["python", "main.py"]

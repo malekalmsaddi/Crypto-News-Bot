@@ -1,14 +1,18 @@
+# Standard library
 import asyncio
 import json
 from datetime import datetime
-from flask import Blueprint, request, jsonify, redirect, url_for, render_template
-from telegram import Update
-from telegram.constants import ParseMode
-from telegram.ext import Application
 from functools import wraps
 
+# Flask
+from flask import Blueprint, request, jsonify, redirect, url_for, render_template
+
+# Telegram
+from telegram import Update
+from telegram.constants import ParseMode
+
+# Local modules
 from logging_config import logger
-import shared
 import database
 from models import News
 from bot import broadcast_news
@@ -20,6 +24,7 @@ from shared import (
     validate_webhook,
     safe_async_exec
 )
+
 
 webhook_bp = Blueprint("webhook", __name__)
 
