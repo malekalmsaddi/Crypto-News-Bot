@@ -15,6 +15,18 @@ COPY models.py /app/
 COPY database.py /app/
 COPY requirements.txt /app/
 COPY templates/ /app/templates/
+COPY market.py /app/
+COPY state.py /app/
+COPY logging_config.py /app/
+COPY broadcast_to_all.py /app/
+COPY add_group_link.py /app/
+COPY add_new_command.py /app/
+COPY register_commands.py /app/
+COPY setup_group.py /app/
+COPY static/ /app/static/
+COPY attached_assets/ /app/attached_assets/
+
+
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
