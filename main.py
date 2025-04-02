@@ -58,11 +58,6 @@ for rule in flask_app.url_map.iter_rules():
 
 database.init_db()
 
-@flask_app.route("/")
-def serve_index():
-    print("📄 Serving HTML template")
-    return render_template("index.html")
-
 @flask_app.before_request
 def reject_if_shutting_down():
     if is_shutting_down():
