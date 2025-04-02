@@ -27,7 +27,7 @@ PriceData = Dict[str, Dict[str, float]]
 ChatData = Dict[str, Any]
 
 # ---- Shared Flask App ----
-flask_app = Flask(__name__, template_folder=os.path.abspath(os.path.join(os.path.dirname(__file__), '../templates')))
+flask_app = Flask(__name__, template_folder=os.path.abspath(os.path.join(os.path.dirname(__file__), './templates')))
 flask_app.secret_key = SESSION_SECRET
 
 # ---- Telegram App Management ----

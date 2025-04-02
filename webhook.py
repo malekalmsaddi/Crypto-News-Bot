@@ -1,6 +1,7 @@
 # Standard library
-import asyncio
 import os
+print("Current working directory:", os.getcwd())
+import asyncio
 import json
 from datetime import datetime
 from functools import wraps
@@ -27,13 +28,9 @@ from shared import (
     safe_async_exec
 )
 
-
 webhook_bp = Blueprint("webhook", __name__)
-app = Flask(
-    __name__,
-    template_folder=os.path.join(os.getcwd(), 'templates'),
-    static_folder=os.path.join(os.getcwd(), 'static')
-)
+
+app = Flask(__name__)
 
 
 def async_route(f):
@@ -60,7 +57,7 @@ def index():
     if request.method == 'POST':
         logger.info("Redirecting POST from '/' to '/telegram-webhook'")
         return redirect(url_for('webhook.telegram_webhook'), code=307)
-
+    
     return render_template ("index.html")
 
 @webhook_bp.route('/health', methods=['GET'])
@@ -216,3 +213,5 @@ async def telegram_webhook():
             "message": "Internal server error",
             "request_id": request_id
         }), 500
+    
+app.register_blueprint(webhook_bp) 

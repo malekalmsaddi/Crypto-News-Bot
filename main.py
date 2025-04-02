@@ -3,7 +3,7 @@ import logging
 import asyncio
 import threading
 import signal
-from flask import jsonify, render_template
+from flask import jsonify, Flask
 from werkzeug.serving import make_server
 from webhook import webhook_bp
 from config import HOST, PORT, DEBUG, TELEGRAM_BOT_TOKEN, WEBHOOK_URL, WEBHOOK_SECRET
@@ -21,6 +21,7 @@ from shared import (
     shutdown_lock,
     flask_app  # ✅ Using single shared instance
 )
+
 
 # ========== env logic ==========
 if os.path.exists(".env"):
@@ -57,6 +58,10 @@ for rule in flask_app.url_map.iter_rules():
     print(f"{rule.methods} {rule.rule}")
 
 database.init_db()
+
+def async_wait(event: threading.Event):
+    loop = asyncio.get_event_loop()
+    return loop.run_in_executor(None, event.wait)
 
 @flask_app.before_request
 def reject_if_shutting_down():
@@ -196,7 +201,7 @@ async def run_bot(shutdown_event):
 
         set_shutting_down(False)
         logging.info("🟢 Bot operational - waiting for shutdown...")
-        await shutdown_event.wait()
+        await async_wait(shutdown_event)
 
     except Exception as e:
         logging.error(f"❌ Bot initialization failed: {e}")
